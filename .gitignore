@@ -1,0 +1,33 @@
+# Go build artifacts
+/vyview
+/bin/
+/dist/
+*.test
+*.out
+coverage.*
+
+# Runtime datastore & local dev state
+*.ring
+*.dat
+*.db
+/var/
+/run/
+
+# Font Awesome Pro — NEVER commit Pro assets or registry credentials (Brief §9.11)
+icons/pro/
+assets/icons/pro/
+icons.provenance.json
+.npmrc
+
+# Frontend build toolchain (CI / developer machine only)
+node_modules/
+.cache/
+playwright-report/
+test-results/
+
+# OS / editor noise
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
