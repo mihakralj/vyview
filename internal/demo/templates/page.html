@@ -1,0 +1,140 @@
+{{template "head" .Shell}}
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="app">
+  {{template "rail" .Shell}}
+  <div class="workspace">
+    {{template "topbar" .Shell}}
+    <main id="main" class="content">
+      <div class="page-heading"><div><h1>{{.Title}}</h1><p>{{.Description}}{{if .Summary}} · {{.Summary}}{{end}}</p>{{with .InterfaceDetail}}<p>{{.State}} · {{.Mode}} · driver {{.Driver}} · MAC {{.MAC}}</p>{{end}}</div><span class="source">Fixture · {{.Source}}</span></div>
+      {{if gt (len .Tabs) 1}}<nav class="tabs" aria-label="Section views">{{range .Tabs}}<a href="{{.Href}}" {{if .Current}}aria-current="page"{{end}}>{{.Title}}</a>{{end}}</nav>{{end}}
+      {{if .Options}}
+      <section class="card"><h2>Demo preferences</h2><nav class="tabs" aria-label="Demo preferences">{{range .Options}}<a href="{{.Href}}" {{if .Current}}aria-current="true"{{end}}>{{.Title}}</a>{{end}}</nav></section>
+      {{else}}
+      {{if .SummaryMetrics}}<section aria-label="Snapshot summary"><div class="kpi-grid interface-kpis">{{range .SummaryMetrics}}<article class="card kpi status-{{.Status}}"><h3>{{.Name}}</h3><p class="kpi-value">{{.Value}}</p><p class="muted">{{.Detail}}</p><span class="status-label">{{if eq .Status "warning"}}Warning{{else}}Example{{end}}</span></article>{{end}}</div></section>{{end}}
+      {{if and .InterfaceDetail (eq .TabID "overview")}}<section aria-label="Interface summary"><div class="kpi-grid interface-kpis">{{range .InterfaceDetail.Metrics}}<article class="card kpi status-{{.Status}}"><h3>{{.Name}}</h3><p class="kpi-value">{{.Value}}</p><p class="muted">{{.Detail}}</p><span class="status-label">{{if eq .Status "warning"}}Warning{{else}}Healthy{{end}}</span></article>{{end}}</div></section>{{end}}
+      {{with .Chart}}
+      <section class="card analytics" aria-labelledby="sample-title">
+        <div class="card-heading"><h2 id="sample-title">{{.Title}} · {{.Unit}}</h2><nav class="range" aria-label="Chart range">{{range .Options}}<a href="{{.Href}}" {{if .Current}}aria-current="true"{{end}}>{{.Title}}</a>{{end}}</nav></div>
+        {{if .TXPath}}<div class="legend"><span><i class="legend-dot rx"></i> Receive</span><span><i class="legend-dot tx"></i> Transmit</span><span>{{.Annotation}} · illustrative</span></div>{{end}}
+        <svg class="chart detail-chart" viewBox="0 0 800 220" role="img" aria-labelledby="sample-title sample-desc"><desc id="sample-desc">Simulated {{.Range}} {{if .TX}}receive {{end}}samples: {{range .Points}}{{.}}; {{end}}{{if .TX}} transmit samples: {{range .TX}}{{.}}; {{end}}{{end}}</desc><g class="grid-lines"><path d="M40 20H760 M40 65H760 M40 110H760 M40 155H760 M40 200H760"></path></g>{{if .Bars}}{{range .Columns}}<rect class="chart-bar" x="{{.X}}" y="{{.Y}}" width="{{.Width}}" height="{{.Height}}"></rect>{{end}}{{else}}<path class="chart-rx" d="{{.Path}}"></path>{{if .TXPath}}<path class="chart-tx" d="{{.TXPath}}"></path><path class="event-marker" d="M {{.MarkerX}} 20 V 200"></path>{{end}}{{end}}</svg>
+        <details><summary>View samples</summary><p>{{if .TX}}Receive{{else}}Samples{{end}} · {{.Unit}}</p><ol class="sample-list">{{range .Points}}<li>{{.}} {{$.Chart.Unit}}</li>{{end}}</ol>{{if .TX}}<p>Transmit · {{.Unit}}</p><ol class="sample-list">{{range .TX}}<li>{{.}} {{$.Chart.Unit}}</li>{{end}}</ol>{{end}}</details>
+      </section>
+      {{end}}
+      {{range .EvidencePanels}}<section class="card analytics">
+        <div class="card-heading"><h2>{{.Title}}</h2><span class="source">Fixture · {{.Source}}</span></div>
+        <div class="table-wrap" tabindex="0" role="region" aria-label="{{.Title}}"><table>
+          <thead><tr><th scope="col">Evidence</th>{{range .Columns}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
+          <tbody>{{range .Rows}}<tr><th scope="row">{{if .Href}}<a href="{{.Href}}">{{.Label}}</a>{{else}}{{.Label}}{{end}}</th>{{range .Values}}<td>{{.}}</td>{{end}}</tr>{{end}}</tbody>
+        </table></div>
+      </section>{{end}}
+      {{if and .InterfaceDetail (eq .TabID "overview")}}
+      <div class="interface-panels">
+        <section class="card" aria-labelledby="optics-title"><div class="card-heading"><h2 id="optics-title">Optics · SFP+ DOM</h2><span class="source">Fixture</span></div>
+          {{range .InterfaceDetail.Optics}}<div class="optics-row"><div><strong>{{.Name}}</strong><span>{{.Value}} · {{.Status}}</span></div><meter min="{{.AlarmLow}}" max="{{.AlarmHigh}}" low="{{.WarningLow}}" high="{{.WarningHigh}}" optimum="{{.Optimum}}" value="{{.Reading}}" aria-label="{{.Name}} measured in {{.Unit}}"></meter><small>Warning limits: {{.WarningLow}} to {{.WarningHigh}} {{.Unit}} · alarm limits: {{.AlarmLow}} to {{.AlarmHigh}} {{.Unit}}</small></div>{{end}}
+          <a href="{{range .Tabs}}{{if eq .Title "Optics"}}{{.Href}}{{end}}{{end}}">View optics details</a>
+        </section>
+        <div class="interface-trends">
+          <section class="card"><h2>Packets/s · example trend</h2><svg class="chart small-chart" viewBox="0 0 800 220" role="img" aria-label="Example receive packet trend"><path class="chart-rx" d="{{.PacketPath}}"></path></svg></section>
+          <section class="card"><h2>Errors &amp; drops · example trend</h2><svg class="chart small-chart" viewBox="0 0 800 220" role="img" aria-label="Example error spike"><path class="error-chart" d="{{.ErrorPath}}"></path></svg><p class="muted">Example error spike · not live</p></section>
+        </div>
+        <section class="card"><h2>Addresses &amp; neighbors</h2><p class="muted">Fixture · example addressing</p>{{range .Sections}}{{if eq .ID "addresses"}}<ul class="address-list">{{range .Records}}<li><strong>{{.Name}}</strong> <span class="mono">{{index .Values 0}}</span> · {{.Status}}</li>{{end}}</ul>{{end}}{{end}}<a href="{{range .Tabs}}{{if eq .Title "Addresses"}}{{.Href}}{{end}}{{end}}">View addresses</a></section>
+      </div>
+      <section class="card analytics" aria-labelledby="driver-title"><div class="card-heading"><h2 id="driver-title">Driver counters · fixture</h2><span class="source">Example snapshot</span></div>
+        <div class="table-wrap" tabindex="0" role="region" aria-label="Driver counters"><table><thead><tr><th>Counter</th><th>Value</th><th>Delta</th><th>Rate</th><th>Trend</th></tr></thead><tbody>
+        {{range .InterfaceDetail.Counters}}<tr><th scope="row" class="mono">{{.Name}}</th><td>{{.Value}}</td><td>{{.Delta}}</td><td>{{.Rate}}</td><td><svg class="spark" viewBox="0 0 800 220" role="img" aria-label="{{.Name}} example trend"><path class="chart-rx" d="{{.Path}}"></path></svg></td></tr>{{end}}
+        </tbody></table></div>
+      </section>
+      {{end}}
+      {{with .Heatmap}}
+      <section class="card analytics" aria-labelledby="heatmap-title">
+        <div class="card-heading">
+          <h2 id="heatmap-title">{{.Title}}</h2>
+          {{if .Options}}<nav class="range" aria-label="Heatmap range">{{range .Options}}<a href="{{.Href}}" {{if .Current}}aria-current="true"{{end}}>{{.Title}}</a>{{end}}</nav>{{end}}
+        </div>
+        <p class="muted">Simulated samples in {{.Unit}}. Select a cell to inspect the sample.</p>
+        <div class="table-wrap heatmap-wrap" tabindex="0" role="region" aria-label="{{.Title}} heatmap">
+          <table class="heatmap"><thead><tr><th scope="col">Series</th>{{range .Buckets}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
+          <tbody>{{range .Rows}}<tr><th scope="row">{{.Label}}</th>{{range .Cells}}
+            <td><a class="heat-level-{{.Level}}" href="{{.Href}}" aria-label="{{.Label}}" {{if .Selected}}aria-current="true"{{end}}>{{.Value}}</a></td>
+          {{end}}</tr>{{end}}</tbody></table>
+        </div>
+      </section>
+      {{end}}
+      {{if .Meters}}<section class="card analytics" aria-labelledby="visual-metrics-title">
+        <div class="card-heading"><h2 id="visual-metrics-title">At a glance</h2><span class="source">Fixture</span></div>
+        <ul class="meter-grid">{{range .Meters}}<li>
+          <div><a href="{{.Href}}">{{.Label}}</a><strong>{{.Reading}}</strong></div>
+          <meter min="0" max="{{.Capacity}}" value="{{.Value}}" aria-label="{{.Label}}"></meter>
+        </li>{{end}}</ul>
+      </section>{{end}}
+      {{if and (eq .Path "/logs") (eq .TabID "journal") .Records}}
+      <section class="card analytics" data-replay aria-labelledby="replay-title">
+        <div class="card-heading"><h2 id="replay-title">Journal replay</h2><span class="source">Fixture · not live</span></div>
+        <div class="filters"><button type="button" data-replay-play>Play fixture</button><button type="button" data-replay-reset>Reset</button></div>
+        <p data-replay-status role="status">Replay is paused.</p>
+        <ol class="replay-list">{{range .Records}}<li hidden><a href="{{.Href}}">{{.Name}}</a> · {{.Status}}</li>{{end}}</ol>
+      </section>
+      {{end}}
+      {{if and (eq .Path "/routing") (eq .TabID "routes")}}
+      <section class="card analytics" aria-labelledby="lookup-title">
+        <h2 id="lookup-title">Longest-prefix lookup</h2>
+        <form class="filters" method="get" action="/routing">
+          {{template "state-inputs" .Shell}}<input type="hidden" name="tab" value="routes">
+          <label>Destination address <input name="ip" value="{{.LookupIP}}" placeholder="192.0.2.20" required></label>
+          <button type="submit">Look up</button>
+        </form>
+        {{if .LookupError}}<p role="status">{{.LookupError}}</p>{{else if .LookupResult}}<p>Best match: <a href="{{.LookupResult.Href}}">{{.LookupResult.Name}}</a></p>{{else if .LookupIP}}<p>No route matches {{.LookupIP}}.</p>{{end}}
+      </section>
+      {{end}}
+      <section class="card" id="firewall-rules" aria-labelledby="records-title">
+        <div class="card-heading"><h2 id="records-title">Records</h2><span class="source">{{len .Records}} shown</span></div>
+        {{if .Categories}}<nav class="tabs" aria-label="Interface types"><a href="{{.Path}}?range={{.RangeID}}&amp;scenario={{.Scenario}}{{if .Theme}}&amp;scoutTheme={{.Theme}}{{end}}" {{if not .SelectedCategories}}aria-current="true"{{end}}>All <span aria-hidden="true">{{len (index .Sections 0).Records}}</span></a>{{range .Categories}}<a href="{{.Href}}" {{if .Current}}aria-current="true"{{end}}>{{.Title}} <span aria-hidden="true">{{.Count}}</span></a>{{end}}</nav>{{end}}
+        <form class="filters" action="{{.Path}}" method="get">
+          {{template "state-inputs" .Shell}}
+          <input type="hidden" name="tab" value="{{.TabID}}">
+          {{if .ZoneFilter}}<input type="hidden" name="zone" value="{{.ZoneFilter}}">{{end}}
+          {{if .SelectedCategories}}<input type="hidden" name="types" value="{{range $index, $value := .SelectedCategories}}{{if $index}},{{end}}{{$value}}{{end}}">{{end}}
+          <label>Filter records <input type="search" name="q" value="{{.Query}}" placeholder="Name, address, or status"></label>
+          <label>Sort <select name="sort"><option value="">Default</option><option value="name" {{if eq .Sort "name"}}selected{{end}}>Name</option><option value="status" {{if eq .Sort "status"}}selected{{end}}>Status</option></select></label>
+          <button type="submit">Apply</button>
+        </form>
+        {{if eq .Path "/interfaces"}}<details class="columns" data-columns><summary>Choose columns</summary><fieldset><legend>Visible columns</legend>{{range $index, $column := .Columns}}<label><input type="checkbox" data-column-choice="{{$index}}" checked> {{$column}}</label>{{end}}<label><input type="checkbox" data-column-choice="spark" checked> 1h trend</label></fieldset><p data-columns-status role="status"></p></details>{{end}}
+        {{if .Diagram}}<figure class="network-map" aria-labelledby="map-title">
+          <figcaption id="map-title">Router topology · select a node</figcaption>
+          <div class="map-root"><strong>demo-router</strong><small>Example gateway</small></div>
+          <ul>{{range .Visual}}<li><a href="{{.Href}}"><strong>{{.Name}}</strong><span>{{.Value}}</span></a></li>{{end}}</ul>
+        </figure>{{else if .Visual}}<div class="visual-grid" aria-label="Linked evidence">{{range .Visual}}<a href="{{.Href}}"><strong>{{.Name}}</strong><span>{{.Value}}</span></a>{{end}}</div>{{end}}
+        {{if .ZoneFilterLabel}}<p class="zone-filter">Showing example rules for <strong>{{.ZoneFilterLabel}}</strong> · <a href="{{.ClearZone}}">Clear zone filter</a></p>{{end}}
+        {{if .Records}}<div class="table-wrap" tabindex="0" role="region" aria-label="Record list"><table><thead><tr><th scope="col">Name</th><th scope="col">Status</th>{{range $index, $column := .Columns}}<th scope="col" {{if eq $.Path "/interfaces"}}data-column="{{$index}}"{{end}}>{{$column}}</th>{{end}}{{if eq .Path "/interfaces"}}<th scope="col" data-column="spark">1h trend</th>{{end}}</tr></thead><tbody>
+        {{range .Records}}{{$record := .}}<tr><th scope="row"><a href="{{.Href}}">{{.Name}}</a></th><td class="{{if eq .Status "Down"}}interface-down{{end}}">{{.Status}}</td>{{range $index, $value := .Values}}<td class="mono {{if and (eq $.Path "/interfaces") (eq $index 7) (or (gt $record.Errors 0) (gt $record.Drops 0))}}interface-warning{{end}}" {{if eq $.Path "/interfaces"}}data-column="{{$index}}"{{end}}>{{$value}}{{if and (eq $.Path "/interfaces") (eq $index 2) (ne $value "—")}} <button class="copy-inline" type="button" data-copy="{{$value}}" aria-label="Copy {{$record.Name}} address">Copy</button>{{end}}</td>{{end}}{{if eq $.Path "/interfaces"}}<td data-column="spark">{{if .SparkPath}}<svg class="spark series-{{.Color}}" viewBox="0 0 800 220" role="img" aria-label="{{.Name}} example 1-hour trend"><path d="{{.SparkPath}}"></path></svg>{{else}}—{{end}}</td>{{end}}</tr>{{end}}
+        </tbody></table></div>{{else}}<p class="empty">{{if eq .Scenario "unavailable"}}This fixture source is unavailable.{{else}}No records match this view.{{end}}</p>{{end}}
+        {{if eq .Path "/interfaces"}}<p class="source-note">Fixture only · illustrative equivalents: ip -j -s link · ip -j addr · ethtool · show interfaces. No live refresh.</p><p data-copy-status role="status"></p>{{end}}
+      </section>
+      {{if .ZoneRows}}<section class="card analytics" aria-labelledby="zone-title">
+        <div class="card-heading"><h2 id="zone-title">Zone policy matrix · from → to</h2><span class="source">Fixture · illustrative</span></div>
+        <p class="muted zone-explanation">Select a policy to see its example rules. +N is the number of illustrated exceptions; mixed indicates multiple actions.</p>
+        <div class="table-wrap zone-matrix" tabindex="0" role="region" aria-label="Zone matrix">
+          <table><thead><tr><th scope="col">From \ To</th>{{range .ZoneNames}}<th scope="col">{{.}}</th>{{end}}</tr></thead><tbody>
+          {{range .ZoneRows}}<tr><th scope="row">{{.Name}}</th>{{range .Cells}}<td>{{if .Href}}<a class="zone-action zone-{{.Action}}" href="{{.Href}}" aria-label="{{.Label}}" {{if .Selected}}aria-current="true"{{end}}>{{.Value}}</a>{{else}}<span aria-label="{{.Label}} · no example policy">{{.Value}}</span>{{end}}</td>{{end}}</tr>{{end}}
+          </tbody></table>
+        </div>
+      </section>{{end}}
+      {{with .Selected}}
+      <section id="details" class="card inspector" tabindex="-1" aria-labelledby="detail-title">
+        <div class="card-heading"><h2 id="detail-title">{{.Name}} · details</h2><a href="{{$.Close}}">Close details</a></div>
+        <p>{{.Detail}}</p>
+        {{with $.Heatmap}}{{if .Selection}}<p class="sample-selection"><strong>Selected sample:</strong> {{.Selection}}</p>{{end}}{{end}}
+        <dl><dt>Status</dt><dd>{{.Status}}</dd></dl>
+        {{range .Values}}<div class="copy-row"><code>{{.}}</code><button type="button" data-copy="{{.}}">Copy value</button></div>{{end}}
+        <p data-copy-status role="status"></p>
+        {{if $.Related}}<a href="{{$.Related}}">Open related evidence</a>{{end}}
+      </section>
+      {{end}}
+      {{end}}
+      <footer>Demonstration only · No router is connected · All data is simulated</footer>
+    </main>
+  </div>
+</div>
+{{template "mobile" .Shell}}
+</body>
+</html>

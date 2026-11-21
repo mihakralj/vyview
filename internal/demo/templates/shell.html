@@ -1,0 +1,68 @@
+{{define "theme-script"}}
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    if (param === "system") {
+      document.documentElement.setAttribute("data-theme",
+        window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    }
+    try {
+      if (localStorage.getItem("vyview-demo-rail") === "collapsed") {
+        document.documentElement.setAttribute("data-rail", "collapsed");
+      }
+    } catch {}
+  })();
+{{end}}
+{{define "head"}}<!doctype html>
+<html lang="en" data-theme="{{if eq .Theme "light"}}light{{else}}dark{{end}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Heading}} · vyview demo</title>
+  <script>{{template "theme-script"}}</script>
+  <link rel="stylesheet" href="/assets/utilities.css">
+  <link rel="stylesheet" href="/assets/app.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+{{template "icons-sprite"}}
+{{end}}
+{{define "rail"}}
+  <aside class="rail" aria-label="Application">
+    <div class="rail-header">
+      <a class="brand" href="{{.Home}}" title="vyview · view-only dashboard">
+        <span class="brand-mark" aria-hidden="true"><svg class="brand-icon"><use href="#fa-router"></use></svg></span>
+        <span class="brand-text"><strong>vyview</strong><small>view-only dashboard</small></span>
+      </a>
+      <button type="button" class="rail-toggle" data-rail-toggle aria-expanded="true" aria-label="Toggle sidebar" title="Toggle sidebar ([)">
+        <svg class="rail-icon icon-collapse" aria-hidden="true"><use href="#fa-angles-left"></use></svg>
+        <svg class="rail-icon icon-expand" aria-hidden="true"><use href="#fa-angles-right"></use></svg>
+      </button>
+    </div>
+    <nav aria-label="Main navigation">
+      {{range .Nav}}<a href="{{.Href}}" title="{{.Title}}" {{if .Current}}class="nav-active" aria-current="page"{{end}}>
+        <span class="nav-icon-slot" aria-hidden="true"><svg class="nav-icon"><use href="#{{.Icon}}"></use></svg></span>
+        <span class="nav-label">{{.Title}}</span>
+      </a>{{end}}
+      {{if eq .Heading "Overview"}}<span class="nav-heading">ON THIS PAGE</span><a href="#links" title="Links">
+        <span class="nav-icon-slot" aria-hidden="true"><svg class="nav-icon"><use href="#fa-link"></use></svg></span>
+        <span class="nav-label">Links</span>
+      </a>{{end}}
+    </nav>
+  </aside>
+{{end}}
+{{define "topbar"}}<header class="topbar">
+  <div class="breadcrumb"><span>demo-router</span> <span aria-hidden="true">›</span> <strong>{{.Heading}}</strong></div>
+  <div class="top-actions"><a data-search-link href="{{.SearchURL}}">Search <kbd>Ctrl K</kbd></a><span class="demo-badge font-semibold"><span aria-hidden="true">●</span> Demo data</span></div>
+</header>{{end}}
+{{define "mobile"}}<nav class="mobile-nav" aria-label="Page navigation">
+  {{range .Mobile}}{{if eq .Title "Overview"}}<a href="{{if eq $.Heading "Overview"}}#main{{else}}{{.Href}}{{end}}" {{if .Current}}aria-current="page"{{end}}>Overview</a>
+  {{else if eq .Title "Interfaces"}}<a href="{{if eq $.Heading "Overview"}}#links{{else}}{{.Href}}{{end}}" {{if .Current}}aria-current="page"{{end}}>Links</a>
+  {{else if eq .Title "Traffic & Clients"}}<a href="{{.Href}}" {{if .Current}}aria-current="page"{{end}}>Clients</a>
+  {{else if eq .Title "Health & Alerts"}}<a href="{{.Href}}" {{if .Current}}aria-current="page"{{end}}>Alerts</a>{{end}}{{end}}
+  <a href="{{.SearchURL}}">More</a>
+</nav>{{end}}
+{{define "state-inputs"}}
+  <input type="hidden" name="range" value="{{.RangeID}}">
+  <input type="hidden" name="scenario" value="{{.Scenario}}">
+  {{if .Theme}}<input type="hidden" name="scoutTheme" value="{{.Theme}}">{{end}}
+{{end}}

@@ -1,0 +1,36 @@
+const { test, expect } = require('@playwright/test')
+const AxeBuilder = require('@axe-core/playwright').default
+
+test('default dark and selected light themes render the design-system colors', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('/')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(11, 18, 32)')
+  await expect(page.locator('.rail')).toHaveCSS('background-color', 'rgb(13, 21, 38)')
+  await expect(page.locator('.chart-card')).toHaveCSS('background-color', 'rgb(17, 26, 46)')
+  await expect(page.locator('.chart-rx')).toHaveCSS('stroke', 'rgb(34, 211, 238)')
+  await expect(page.locator('.chart-tx')).toHaveCSS('stroke', 'rgb(167, 139, 250)')
+
+  await page.getByRole('link', { name: 'Settings', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Dark theme' })).toHaveAttribute('aria-current', 'true')
+  await page.getByRole('link', { name: 'Light theme' }).click()
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Overview' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(247, 249, 252)')
+  await expect(page.locator('.rail')).toHaveCSS('background-color', 'rgb(238, 242, 247)')
+  await expect(page.locator('.chart-card')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(page.locator('.chart-rx')).toHaveCSS('stroke', 'rgb(8, 145, 178)')
+  await expect(page.locator('.chart-tx')).toHaveCSS('stroke', 'rgb(124, 58, 237)')
+  const { violations } = await new AxeBuilder({ page }).analyze()
+  expect(violations.filter(({ impact }) => impact === 'serious' || impact === 'critical')).toEqual([])
+})
+
+test('system theme is selectable and honors the browser preference', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('/settings')
+  await page.getByRole('link', { name: 'System theme' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+})

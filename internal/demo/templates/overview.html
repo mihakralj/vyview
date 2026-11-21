@@ -1,0 +1,64 @@
+{{template "head" .Shell}}
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="app">
+  {{template "rail" .Shell}}
+  <div class="workspace">
+    {{template "topbar" .Shell}}
+    <main id="main" class="content">
+      <div class="page-heading">
+        <div><h1>Overview</h1><p>Example gateway · All values are simulated</p></div>
+        <div class="range" role="group" aria-label="Throughput time range">
+          {{range .Ranges}}<a href="{{.Href}}" {{if .Selected}}aria-current="true"{{end}}>{{.Label}}</a>{{end}}
+        </div>
+      </div>
+      {{if .Alert}}<div class="alert" role="status"><span aria-hidden="true">⚠</span><strong>Demo notice</strong><span>{{.Alert}}</span><a href="{{index .EvidenceLinks "/health"}}">View health</a></div>{{end}}
+      <div class="hero-grid">
+        <div class="hero-side">
+          <section class="card wan" aria-labelledby="wan-title">
+            <div class="card-heading"><h2 id="wan-title"><a href="{{index .EvidenceLinks "/interfaces/eth0"}}">WAN · eth0</a></h2><span class="source">Fixture</span></div>
+            <p class="state {{if eq .WANState "Up"}}state-ok{{else}}state-unknown{{end}}"><span aria-hidden="true">●</span> {{.WANState}}</p>
+            <p class="wan-address">{{.WANAddress}}</p>
+            {{if .WANPrefix}}<p class="muted mono">{{.WANPrefix}} · gateway {{.WANGateway}}</p>
+            <div class="wan-meta"><span>Gateway RTT <strong>{{.WANLatency}}</strong></span><span>Loss <strong>{{.WANLoss}}</strong></span><span>Lease <strong>{{.WANLease}}</strong></span></div>{{else}}<p class="muted">No demo sample available</p>{{end}}
+          </section>
+          <section id="links" class="card" aria-labelledby="links-title">
+            <div class="card-heading"><h2 id="links-title"><a href="{{index .EvidenceLinks "/interfaces"}}">Links</a></h2><span class="source">Fixture</span></div>
+            {{if .Links}}<ul class="link-list">{{range .Links}}<li><span><span class="link-dot {{if eq .State "Up"}}ok{{else}}unknown{{end}}" aria-hidden="true">●</span> <a href="{{index $.EvidenceLinks .Name}}"><strong>{{.Name}}</strong></a> <span class="muted">{{.Description}}</span></span><span class="mono link-rate">{{.RX}} ↓ <span class="muted">/</span> {{.TX}} ↑</span></li>{{end}}</ul>{{else}}<p class="empty">Link data unavailable</p>{{end}}
+          </section>
+        </div>
+        <section class="card chart-card" aria-labelledby="chart-title">
+          <div class="card-heading chart-heading"><div><h2 id="chart-title">Throughput · WAN eth0</h2><p class="muted chart-subtitle">{{.RangeLabel}} · simulated samples</p></div><span class="source">Fixture</span></div>
+          {{if .Points}}
+          <div class="legend"><span><i class="legend-dot rx"></i> Receive</span><span><i class="legend-dot tx"></i> Transmit</span><span class="muted">Mb/s</span></div>
+          <svg class="chart" viewBox="0 0 800 220" role="img" aria-labelledby="chart-title chart-description">
+            <desc id="chart-description">Simulated throughput for {{.RangeLabel}}. Peak receive {{.PeakRX}} megabits per second and peak transmit {{.PeakTX}} megabits per second. Sample values follow the chart.</desc>
+            <g class="grid-lines"><path d="M40 20H760 M40 65H760 M40 110H760 M40 155H760 M40 200H760"></path></g>
+            <g class="axis-labels"><text x="0" y="24">1,000</text><text x="9" y="69">750</text><text x="9" y="114">500</text><text x="9" y="159">250</text><text x="23" y="204">0</text></g>
+            <path class="chart-rx" d="{{.RXPath}}"></path><path class="chart-tx" d="{{.TXPath}}"></path>
+          </svg>
+          <div class="chart-labels"><span>{{(index .Points 0).Label}}</span><span>Most recent sample</span></div>
+          <details class="chart-details"><summary>View chart data</summary><div class="table-wrap"><table><thead><tr><th>Sample</th><th>Receive</th><th>Transmit</th></tr></thead><tbody>{{range .Points}}<tr><td>{{.Label}}</td><td>{{.RX}} Mb/s</td><td>{{.TX}} Mb/s</td></tr>{{end}}</tbody></table></div></details>
+          {{else}}<p class="empty">Throughput data unavailable</p>{{end}}
+        </section>
+      </div>
+      <section id="resources" aria-labelledby="resources-title">
+        <div class="section-title"><h2 id="resources-title"><a href="{{index .EvidenceLinks "/system"}}">Resources &amp; status</a></h2><span class="source">Fixture</span></div>
+        <div class="kpi-grid">{{range .KPIs}}<article class="card kpi status-{{.Status}}"><h3>{{.Name}}</h3><p class="kpi-value">{{.Value}}</p><p class="muted">{{.Detail}}</p><span class="status-label">{{if eq .Status "ok"}}Healthy{{else if eq .Status "warning"}}Warning{{else}}Unknown{{end}}</span></article>{{end}}</div>
+      </section>
+      <div class="bottom-grid">
+        <section id="traffic" class="card" aria-labelledby="traffic-title">
+          <div class="card-heading"><h2 id="traffic-title"><a href="{{index .EvidenceLinks "/clients"}}">Top talkers · example</a></h2><span class="source">Fixture</span></div>
+          {{if .Talkers}}<div class="table-wrap"><table><thead><tr><th>Client</th><th>Address</th><th>Received</th><th>Sent</th></tr></thead><tbody>{{range .Talkers}}<tr><td><strong>{{.Name}}</strong></td><td class="mono">{{.Address}}</td><td class="mono">{{.Received}}</td><td class="mono">{{.Sent}}</td></tr>{{end}}</tbody></table></div>{{else}}<p class="empty">Client data unavailable</p>{{end}}
+        </section>
+        <section id="events" class="card" aria-labelledby="events-title">
+          <div class="card-heading"><h2 id="events-title"><a href="{{index .EvidenceLinks "/logs"}}">Recent events · example</a></h2><span class="source">Fixture</span></div>
+          {{if .Events}}<ul class="event-list">{{range .Events}}<li><time>{{.Time}}</time><span class="event-dot {{.Status}}" aria-hidden="true">●</span><span><strong>{{.Kind}}</strong><small>{{.Description}}</small></span></li>{{end}}</ul>{{else}}<p class="empty">Event data unavailable</p>{{end}}
+        </section>
+      </div>
+      <footer>Demonstration only · No router is connected · All data is simulated</footer>
+    </main>
+  </div>
+</div>
+{{template "mobile" .Shell}}
+</body>
+</html>

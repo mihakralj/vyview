@@ -1,0 +1,23 @@
+{{template "head" .Shell}}
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="app">
+  {{template "rail" .Shell}}
+  <div class="workspace">
+    {{template "topbar" .Shell}}
+    <main id="main" class="content">
+      <div class="page-heading"><div><h1>{{.Heading}}</h1><p>Find pages and fixture evidence by name, address or status.</p></div></div>
+      <section class="card">
+        <form action="/search" method="get" class="filters" role="search">
+          {{template "state-inputs" .Shell}}
+          <label>Search dashboard <input type="search" name="q" value="{{.Query}}" autofocus placeholder="Try eth0, WireGuard or r41"></label>
+          <button type="submit">Search</button>
+        </form>
+        <h2>Results · {{len .Results}}</h2>
+        {{if .Results}}<ul class="results">{{range .Results}}<li><a href="{{.Href}}">{{.Title}}</a>{{if .Context}}<small>{{.Context}}</small>{{end}}</li>{{end}}</ul>{{else}}<p class="empty">No evidence matches your search.</p>{{end}}
+      </section>
+    </main>
+  </div>
+</div>
+{{template "mobile" .Shell}}
+</body>
+</html>

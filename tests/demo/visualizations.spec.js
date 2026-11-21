@@ -1,0 +1,43 @@
+const { test, expect } = require('@playwright/test')
+const AxeBuilder = require('@axe-core/playwright').default
+
+test('a specific CPU heatmap sample can be opened and revisited', async ({ page }) => {
+  await page.goto('/system?scoutTheme=light')
+  const heatmap = page.getByRole('region', { name: 'Per-core CPU utilization heatmap' })
+  await expect(heatmap.getByRole('row')).toHaveCount(5)
+  await heatmap.getByRole('link', { name: 'Core 1, 20h ago: 81%' }).click()
+  await expect(page.getByText('Selected sample: Core 1, 20h ago: 81%')).toBeVisible()
+  await expect(heatmap.locator('a[aria-current]')).toHaveCount(1)
+  await page.reload()
+  await expect(heatmap.getByRole('link', { name: 'Core 1, 20h ago: 81%' })).toHaveAttribute('aria-current', 'true')
+  const { violations } = await new AxeBuilder({ page }).analyze()
+  expect(violations.filter(({ impact }) => impact === 'serious' || impact === 'critical')).toEqual([])
+  await page.getByRole('link', { name: 'Close details' }).click()
+  await expect(heatmap.locator('a[aria-current]')).toHaveCount(0)
+})
+
+test('queue heatmap follows range and filters without widening the mobile page', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/dataplane?tab=queues')
+  const heatmap = page.getByRole('region', { name: 'CEETM occupancy heatmap' })
+  await expect(heatmap.getByRole('link', { name: 'Queue 1, 20h ago: 124 descriptors' })).toBeVisible()
+  await page.getByRole('navigation', { name: 'Heatmap range' }).getByRole('link', { name: '1h' }).click()
+  await expect(heatmap.getByRole('link', { name: 'Queue 1, 50m ago: 39 descriptors' })).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Filter records' }).fill('ceetm-1')
+  await page.getByRole('button', { name: 'Apply' }).click()
+  await expect(heatmap.getByRole('row')).toHaveCount(2)
+  await heatmap.getByRole('link', { name: 'Queue 1, 50m ago: 39 descriptors' }).click()
+  await expect(page.getByText('Selected sample: Queue 1, 50m ago: 39 descriptors')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+test('journal histogram draws the selected range as seven bars', async ({ page }) => {
+  await page.goto('/logs')
+  const bars = page.locator('.chart-bar')
+  await expect(bars).toHaveCount(7)
+  const height = await bars.nth(1).getAttribute('height')
+  await page.getByRole('navigation', { name: 'Chart range' }).getByRole('link', { name: '1h' }).click()
+  await expect(bars).toHaveCount(7)
+  await expect(bars.nth(1)).not.toHaveAttribute('height', height)
+  await expect(page.getByRole('button', { name: 'Play fixture' })).toBeVisible()
+})

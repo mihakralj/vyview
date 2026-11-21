@@ -1,0 +1,27 @@
+{
+  "name": "vyview-tooling",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "npm@10.9.9",
+  "engines": {
+    "node": "22.23.5",
+    "npm": "10.9.9"
+  },
+  "scripts": {
+    "check:css": "unocss 'testdata/tooling/*.html' -o dist/tooling.css --config uno.config.ts",
+    "build:demo:css": "unocss 'internal/demo/templates/*.html' -o internal/demo/assets/utilities.css --config uno.config.ts",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@cyclonedx/cyclonedx-npm": "7.0.1",
+    "@fortawesome/fontawesome-free": "7.3.1",
+    "@playwright/test": "1.65.1",
+    "@unocss/cli": "66.13.0",
+    "echarts": "6.1.0",
+    "esbuild": "0.28.2",
+    "svg-sprite": "2.0.4",
+    "unocss": "66.13.0",
+    "uplot": "1.6.32"
+  }
+}

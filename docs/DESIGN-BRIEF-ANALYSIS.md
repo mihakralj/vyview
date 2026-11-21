@@ -85,8 +85,8 @@ Distilled from Brief §9.3, §12.1, and Appendix A (estimates on 1× Cortex-A72 
 ### 4.2 Font Awesome Pro 7.3.1 Dual-Pack Licensing (Brief §9.9, §9.11)
 - **Version pin:** Exactly `7.3.1` in lockfile; Renovate updates gated on manual review; `icons.provenance.json` emitted per build.
 - **Dual icon pack with identical symbol IDs:**
-  - Private builds (`go build -tags fapro` / `VYVIEW_ICON_PACK=pro`): Font Awesome Pro 7.3.1 (Duotone Solid for nav/status/KPI, Classic Regular/Solid/Light for chrome). Source: downloaded "By Icon" Kit (preferred) or individual `@fortawesome/pro-*-svg-icons` packages via CI secret token.
-  - Public / upstream VyOS builds (default): Font Awesome Free 7.x fallback sprite mapping every Pro-only glyph (`router`, `chart-network`, `shield-check`, `block-brick-fire`, `list-timeline`, `lock-keyhole`, `filter-list`, `gauge-max`, `wave-pulse`, `signal-bars`, `command`, `radar`) 1:1 onto Free glyphs, with Duotone falling back to Classic Solid on a 15%-opacity status chip.
+  - Private builds (`go build -tags fapro` / `VYVIEW_ICON_PACK=pro`): Font Awesome Pro 7.3.1 (**Sharp Light** `fa-sharp fa-light` for navigation, status, KPI, and chrome). Source: Font Awesome CLI (`fa`) / downloaded "By Icon" Kit or `@fortawesome/sharp-light-svg-icons` via CI secret token.
+  - Public / upstream VyOS builds (default): Font Awesome Free 7.x fallback sprite mapping every Pro-only glyph (`router`, `chart-network`, `shield-check`, `block-brick-fire`, `list-timeline`, `lock-keyhole`, `filter-list`, `gauge-max`, `wave-pulse`, `signal-bars`, `command`, `radar`) 1:1 onto Free glyphs.
 - **Leak guard:** `.gitignore` blocks `icons/pro/`, `icons.provenance.json`, `.npmrc`; CI fails any public build referencing Pro SVG path hashes, `@fortawesome/pro-*`, or `-tags fapro`.
 
 ---

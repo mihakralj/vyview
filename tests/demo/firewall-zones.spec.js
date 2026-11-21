@@ -1,0 +1,47 @@
+const { test, expect } = require('@playwright/test')
+const AxeBuilder = require('@axe-core/playwright').default
+
+for (const theme of ['dark', 'light']) {
+  test(`directional policy matrix and filters are usable in ${theme} theme`, async ({ page }) => {
+    await page.goto(`/firewall?range=7d&scenario=normal&scoutTheme=${theme}`)
+    const matrix = page.getByRole('region', { name: 'Zone matrix' })
+    await expect(matrix.getByRole('row')).toHaveCount(6)
+    await expect(matrix.getByRole('columnheader')).toHaveCount(7)
+    await expect(matrix.getByRole('link')).toHaveCount(25)
+    await expect(matrix.getByRole('link', { name: 'IoT → LAN · drop +2' })).toHaveClass(/zone-drop/)
+    await expect(matrix.getByRole('link', { name: 'LAN → IoT · accept' })).toHaveClass(/zone-accept/)
+    await expect(matrix.getByRole('link', { name: 'Guest → LAN · reject +1' })).toHaveClass(/zone-reject/)
+    await expect(matrix.getByRole('link', { name: 'WAN → LAN · mixed +2' })).toHaveClass(/zone-mixed/)
+    const { violations } = await new AxeBuilder({ page }).analyze()
+    expect(violations.filter(({ impact }) => impact === 'serious' || impact === 'critical')).toEqual([])
+
+    await matrix.getByRole('link', { name: 'IoT → LAN · drop +2' }).click()
+    await expect(page).toHaveURL(/zone=IoT--LAN/)
+    await expect(page).toHaveURL(/scenario=normal/)
+    await expect(page).toHaveURL(/range=7d/)
+    await expect(page).toHaveURL(new RegExp(`scoutTheme=${theme}`))
+    const records = page.getByRole('region', { name: 'Record list' })
+    await expect(records.getByRole('row')).toHaveCount(4)
+    await expect(records.getByRole('link', { name: 'IoT → LAN · default' })).toBeVisible()
+    await expect(records.getByRole('link', { name: 'IoT → LAN · exception 2' })).toBeVisible()
+    await page.getByRole('searchbox', { name: 'Filter records' }).fill('exception')
+    await page.getByRole('button', { name: 'Apply' }).click()
+    await expect(records.getByRole('row')).toHaveCount(3)
+    await records.getByRole('link', { name: 'IoT → LAN · exception 1' }).click()
+    await expect(page.getByRole('heading', { name: 'IoT → LAN · exception 1 · details' })).toBeVisible()
+    await page.getByRole('link', { name: 'Close details' }).click()
+    await expect(page).toHaveURL(/zone=IoT--LAN/)
+    await page.getByRole('link', { name: 'Clear zone filter' }).click()
+    await expect(page).not.toHaveURL(/zone=/)
+  })
+}
+
+test('zone matrix works on mobile and is omitted when unavailable', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/firewall?tab=zones')
+  await expect(page.getByRole('region', { name: 'Zone matrix' }).getByRole('link')).toHaveCount(25)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.goto('/firewall?scenario=unavailable')
+  await expect(page.getByRole('region', { name: 'Zone matrix' })).toHaveCount(0)
+  await expect(page.getByText('This fixture source is unavailable.')).toBeVisible()
+})

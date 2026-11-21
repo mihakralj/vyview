@@ -1,0 +1,5641 @@
+
+
+===== Page 1 =====
+DESIGN BRIEF  ·  v0.1.0  ·  16 NOV 2026
+vyview
+A view-only, real-time dashboard
+for VyOS routers
+Design brief · information architecture · page specifications · high-fidelity mockups
+architecture · storage · security · performance budgets · packaging · roadmap
+Technology: Go + Datastar (SSE hypermedia) + UnoCSS + Font Awesome Free + uPlot
+Overview mockup — illustrative data, documentation address ranges
+Prepared for Miha Kralj
+Reference target: NXP LS1046A “Mono Gateway” (4× Cortex-A72, arm64) · Linux 6.18 · VyOS 1.5 / rolling
+Audience: owner/architect and the developer(s) who build it
+
+
+===== Page 2 =====
+Contents
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 5
+1 Executive summary
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 5
+1.1 What it is
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 5
+1.2 What it is not
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 6
+1.3 Key design principles (summary)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 6
+1.4 Architecture at a glance
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 7
+2 Goals, non-goals, personas and jobs-to-be-done
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 7
+2.1 Goals
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 7
+2.2 Non-goals (v1)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 7
+2.3 Personas
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 7
+2.4 Jobs-to-be-done and the path to the answer
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 8
+2.5 Success metrics
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 9
+3 Design principles
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 11
+4 Information architecture and navigation
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 11
+4.1 Navigation model
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 12
+4.2 Section inventory
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 13
+4.3 URL and state model
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 14
+5 Page-by-page specification
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 14
+5.1 Overview (home)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 15
+5.2 Interfaces — list
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 16
+5.3 Interfaces — detail (ethernet; variants below)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 17
+5.4 Traffic & Clients
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 17
+5.5 Routing
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 18
+5.6 Firewall & NAT
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 19
+5.7 VPN
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 19
+5.8 Services
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 20
+5.9 QoS / traffic policy
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 20
+5.10 Dataplane — hardware offload (ASK2 module, optional)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 21
+5.11 System
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 22
+5.12 Configuration
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 22
+5.13 Logs & Events
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 23
+5.14 Health & Alerts (view-only)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 23
+5.15 Diagnostics (results only)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 24
+5.16 Topology map
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 24
+5.17 Dashboard settings (local)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 24
+5.18 Cross-page widgets
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 25
+6 Visual design system
+vyview · VyOS View-Only Dashboard — Design Brief
+Contents
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 2
+
+
+===== Page 3 =====
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 25
+6.1 Colour tokens
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 25
+6.2 Typography
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 26
+6.3 Spacing, radius, elevation
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 26
+6.4 Grid and breakpoints
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 26
+6.5 Card anatomy
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 26
+6.6 Tables
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 27
+6.7 Number and unit formatting
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 27
+6.8 Iconography (Font Awesome Free)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 27
+6.9 Motion
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 28
+7 Modern dashboard features — behaviour and implementation
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 30
+8 High-fidelity mockups
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 31
+M1 — Overview (home)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 32
+M2 — Interfaces list
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 33
+M3 — Interface detail (eth0, SFP+ WAN)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 34
+M4 — Traffic & Clients
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 35
+M5 — Firewall rules and zone matrix
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 36
+M6 — Conntrack and NAT translations
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 37
+M7 — Routing: BGP and RIB
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 38
+M8 — VPN: WireGuard peers
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 39
+M9 — QoS: CAKE on eth0 egress
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 40
+M10 — Dataplane: ASK2 hardware offload (optional module)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 41
+M11 — System
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 42
+M12 — Configuration: tree, diff and history
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 43
+M13 — Logs & events
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 44
+M14 — Command palette with global search
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 45
+M15 — Mobile (portrait)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 46
+M16 — Topology map
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 47
+9 Architecture and implementation
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 47
+9.1 Recommendation
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 47
+9.2 Component diagram and data path
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 48
+9.3 Collector catalogue and mechanisms
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 49
+9.4 The VyOS HTTP API: optional, and never for writes
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 49
+9.5 Datastar integration patterns
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 50
+9.6 SSE stream lifecycle
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 51
+9.7 Chart strategy
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 51
+9.8 UnoCSS
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 51
+9.9 Font Awesome
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 52
+9.10 Assets, caching and payload budget
+vyview · VyOS View-Only Dashboard — Design Brief
+Contents
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 3
+
+
+===== Page 4 =====
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 53
+10 Time-series storage and retention
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 53
+10.1 Series inventory (reference router)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 53
+10.2 Tiers
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 54
+10.3 Storage engine options
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 54
+10.4 Flash-wear budget
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 55
+10.5 Persistence across reboots and image upgrades
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 55
+10.6 Integration with Prometheus, Grafana and VictoriaMetrics
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 56
+11 Security model
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 56
+11.1 STRIDE-lite threat table
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 56
+11.2 Read-only guarantees
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 57
+11.3 Privilege model
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 57
+11.4 Authentication options
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 58
+11.5 Sessions, CSRF and request rules
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 58
+11.6 Content Security Policy and Datastar
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 58
+11.7 Network exposure and TLS
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 59
+11.8 Secrets redaction
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 59
+11.9 Household privacy
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 60
+12 Performance and resource budgets (LS1046A)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 60
+12.1 Collection cadence and CPU cost matrix
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 61
+12.2 Memory budget
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 61
+12.3 Network and rendering
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 62
+12.4 Measurement plan
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 63
+13 Packaging and deployment
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 63
+13.1 Proposed config node (option c)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 64
+13.2 Build, upgrade and persistence
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 65
+14 Testing and quality
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 66
+15 Roadmap, risks and open decisions
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 66
+15.1 Risk-gated diagnostics (v2 discussion)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 66
+15.2 Risks and open decisions
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 68
+Appendix A — Data-source catalogue
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 70
+Appendix B — Datastar snippets (illustrative)
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 72
+Appendix C — UnoCSS configuration sketch
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 73
+Appendix D — Font Awesome icon map
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 74
+Appendix E — URL and route map
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 75
+Appendix F — Glossary
+  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 76
+Appendix G — References
+vyview · VyOS View-Only Dashboard — Design Brief
+Contents
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 4
+
+
+===== Page 5 =====
+1 Executive summary
+vyview (working name) is a view-only web dashboard for a VyOS router. It gives a prosumer owner fast, visual access to
+everything that VyOS op-mode and the underlying Linux system already know: interface and client traffic, firewall and
+NAT activity, routing state, VPN health, services, QoS behaviour, hardware and flash health, the configuration and its
+history, logs and derived events. It runs on the router itself as one small Go binary, renders HTML on the server, and
+keeps pages live through a single Server-Sent Events (SSE) stream per open page using the Datastar hypermedia
+framework. Styling comes from a build-time UnoCSS stylesheet and a subset of Font Awesome Free icons; time-series
+charts use uPlot.
+The dashboard is deliberately read-only by construction. It is a better window into the router, not a second control
+plane. There is no code path that writes configuration, clears counters, resets sessions, reboots, generates keys, adds
+images or executes arbitrary commands. This is enforced in the architecture (no state-changing routes, an allowlist of
+read-only collectors, no shell) rather than by convention, because the VyOS HTTP API's keys grant full access and cannot
+be scoped to read-only.
+1.1 What it is
+  A single-router, LAN-only dashboard: 15 top-level sections, roughly 70 deep-linkable views, every widget labelled
+with the exact command, netlink call or file it came from.
+ A live and historical view: 1-second live rings in RAM, and rollups at 10 s, 1 min, 5 min and 1 h kept for up to two
+years with min/avg/max/p95, sized to stay within flash-wear and memory budgets computed in Section 10.
+ A fast view: server-rendered first paint in under 300 ms on the LAN, an initial payload of about 134 KB compressed
+(64 KB with system fonts), and idle streaming estimated at 1.0 % of one Cortex-A72 core.
+ A pluggable view: optional modules (for example the ASK2 hardware-offload dataplane module for the LS1046A)
+declare their collectors and pages. When a module's data source is missing, as on stock x86 VyOS, its pages are
+hidden or show only the generic kernel equivalents.
+1.2 What it is not
+ Excluded capability
+Why
+Where it could go later
+Configuration changes (set/delete/commit,
+load, save, /configure, /config-file)
+Changing config is the job of the CLI and existing
+automation. A second write path doubles the attack
+surface and the testing load.
+Never in vyview. Use the CLI,
+Ansible or the API directly.
+Operational actions: reset, clear, restart,
+reboot, poweroff, conntrack flush, DHCP
+lease release
+These are destructive or disruptive, and the household's
+devices are on the other end of them.
+Not planned.
+generate (keys, certificates, WireGuard
+keypairs), add/delete system image
+These create secrets or change what boots next. Both are
+high impact.
+Not planned.
+Shell, terminal, arbitrary command execution,
+user-entered command strings
+One injection flaw would become full router
+compromise.
+Never.
+User-triggered diagnostics (ping/traceroute on
+demand)
+Even harmless tools are a potential DoS and SSRF
+primitive. v1 shows cached results of scheduled probes.
+v2, risk-gated: fixed targets,
+rate-limited, separate role (Section
+4.17).
+Outbound notifications (mail, push, webhooks)
+Delivery needs credentials, retries and queues. That is a
+different product.
+Later, as an optional module, or via
+external Alertmanager.
+Multi-router fleet management
+v1 is optimised for one router on its own LAN.
+Later: read-only federation of
+several vyview instances.
+vyview · VyOS View-Only Dashboard — Design Brief
+1  Executive summary
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 5
+
+
+===== Page 6 =====
+1.3 Key design principles (summary)
+ 1. Read-only by construction. No mutating HTTP verbs, no write collectors, executables called only from an allowlist
+with fixed argument templates, no shell, and identifiers validated against known sets.
+2. Source transparency. Every number has a source chip naming the op-mode command, Linux command, netlink
+family or file, with a copy button. This builds trust and helps the user learn VyOS.
+3. Overview first, zoom and filter, then details on demand (Shneiderman's mantra), with progressive disclosure on
+every page.
+4. One shared time range across all charts on a page, synchronised crosshair and brush-to-zoom, and event
+annotations (commits, reboots, link flaps, routing changes).
+5. Live by default, pausable. While paused, a counter shows how many updates are pending.
+6. Fixed status semantics. ok / warn / crit / info / unknown use a colour-blind-safe palette and always pair colour with
+an icon and text.
+7. Budgets are requirements. Time to answer in 3 clicks or fewer; first paint under 300 ms on the LAN; under 3 % of
+one A72 core while idle-streaming; under 40 MB RSS; flash writes only as batched rollups.
+8. Accessible and self-contained. WCAG 2.2 AA, keyboard-first, and no CDN or internet dependency: the dashboard
+must work during an internet outage, which is when it is needed most.
+1.4 Architecture at a glance
+Figure 1 — vyview architecture. Browsers talk HTTPS (GET and SSE only) to one Go process on the router. The process reads from the
+kernel, FRR, VyOS op-mode, journald, the Kea control socket and the running configuration through allowlisted collectors. It never calls
+mutating APIs.
+The recommended implementation is a static Go binary using the official Datastar Go SDK. Collectors feed a normalised
+in-memory state model and RAM ring buffers. A rollup engine writes batched multi-resolution history, an SSE hub fans
+out changes to subscribed pages, and renderers produce HTML fragments that Datastar morphs into the DOM by
+element id. Chart data travels as Datastar signals into small custom elements that wrap uPlot. A privileged helper process
+exposes only fixed read-only calls, so the web-facing process holds no capabilities (Section 11).
+vyview · VyOS View-Only Dashboard — Design Brief
+1  Executive summary
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 6
+
+
+===== Page 7 =====
+2 Goals, non-goals, personas and jobs-to-be-done
+2.1 Goals
+  Answer the common questions a VyOS owner has in three clicks or fewer, without SSH.
+ Make history first-class: show what changed and when, and connect it to commits, reboots and link events.
+ Expose everything op-mode knows in a navigable, searchable form, including the configuration (redacted) and its
+diffs.
+ Run comfortably on an embedded ARM64 router (LS1046A, eMMC/SD storage) and on x86 VyOS, with no external
+dependencies.
+ Make the optional hardware-offload dataplane (ASK2) observable: is offload engaged, how much traffic takes the
+hardware path, and where are queues and buffers under pressure.
+ Be pleasant on a desktop, usable on a phone, and legible on a wall-mounted display.
+2.2 Non-goals (v1)
+  Any write or action capability (Section 1.2). Alert notification delivery. Multi-router fleet views.
+ Replacing Grafana/Prometheus for long-term analytics at scale. vyview can export to them but must work
+standalone.
+ Deep packet inspection UI or full Suricata alert management. vyview shows counters and verdict summaries only.
+ Internet-exposed operation. vyview is designed for LAN or management VRF access, and optionally behind a VPN.
+2.3 Personas
+ Persona
+Context
+Primary devices
+What success looks like
+P1 Homelab owner /
+architect (the primary user)
+Builds and tunes the router, often from
+his own tree; cares about correctness,
+offload, routing and change impact.
+Desktop, large
+monitor
+Can confirm in seconds that a commit, kernel
+or offload change behaved as intended, and
+can see the evidence chain.
+P2 Power user
+troubleshooting
+Something feels wrong: slow internet,
+VPN not connecting, a device offline.
+Laptop or phone
+Gets from symptom to cause in under 3
+clicks, with the exact command shown so the
+finding can be verified in the CLI.
+P3 Family-IT admin glancing
+Wants to know if 'the internet is fine' and
+who is using bandwidth.
+Phone (PWA)
+One screen with a clear green/amber/red
+status, top talkers and recent problems.
+P4 Wall-mounted NOC
+display
+Always-on screen in a lab or office corner.
+TV / tablet in kiosk
+mode
+Auto-rotating pages, large type, no
+interaction needed, stays correct for weeks
+(72 h soak-tested).
+P5 Developer building vyview
+Implements collectors, parsers and pages.
+Desktop
+Clear specs, fake collectors, golden tests,
+budgets that can be measured.
+2.4 Jobs-to-be-done and the path to the answer
+ Job / question
+Path (clicks)
+Evidence shown
+"Why is the internet slow?"
+Overview → WAN card (1) → Interface
+eth0 (2), or Overview → QoS (2)
+WAN rx/tx against link speed, gateway RTT and loss,
+latency-under-load probe, CAKE drops and marks, top
+talkers in the same time range, eth0 errors and DOM optics.
+"Who is using bandwidth?"
+Overview → Top talkers (1) → client (2)
+Per-client stacked area, Sankey WAN↔segments, client
+detail with flows and lease/ARP/LLDP identity.
+"Is the VPN up?"
+Overview → VPN peers KPI (1) → peer
+(2)
+WireGuard handshake age with a stale threshold, endpoint,
+rx/tx, allowed IPs; IPsec IKE/Child SA state and rekey timer.
+"Did my last commit break something?"
+Overview → event 'Commit r41' (1) →
+Config diff (2)
+Diff r40↔r41 (secrets masked), commit annotation on all
+charts, alerts raised after the commit, related logs.
+vyview · VyOS View-Only Dashboard — Design Brief
+2  Goals, non-goals, personas and jobs-to-be-done
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 7
+
+
+===== Page 8 =====
+Job / question
+Path (clicks)
+Evidence shown
+"Is hardware offload actually engaged?"
+Overview → Offload hit KPI (1) →
+Dataplane (2)
+Offloaded vs software flows, hit ratio, per-flow path in the
+conntrack table (HW/SW), CEETM queue depth, BMan pool
+fill, per-core softirq.
+"Why can't my IoT device reach the NAS?"
+Ctrl-K → type IP (1) → matching rule (2)
+Global search shows lease, ARP, conntrack entries, matching
+firewall rules and hit counters, and recent log drops for that
+IP.
+"Is BGP to the lab cluster up?"
+Routing → BGP (1)
+Neighbour state, uptime, received/sent prefixes, last
+notification, and a hint for the Active state.
+"Is the router healthy?"
+Health pill (1)
+Derived checks list: WAN, gateway loss, disk, temperature,
+certificate expiry, pool usage, conntrack, handshake age.
+"Is the flash wearing out?"
+System (1) → Storage (scroll)
+eMMC life-time estimate A/B, pre-EOL state, bytes written
+per day, vyview's own write rate.
+2.5 Success metrics
+ Metric
+Target
+How measured
+Time-to-answer for the jobs in 2.4
+≤ 3 clicks or 1 search
+Scripted Playwright journeys count navigation steps; usability
+test with 3 users.
+First contentful paint (LAN, warm cache)
+< 300 ms
+Playwright trace on 1 GbE and on Wi-Fi 5; server timing header
+for render time.
+First paint, cold cache
+< 600 ms
+Same, with the cache disabled; payload 134 KB brotli (Section
+9.10).
+Idle-streaming CPU (1 client on Overview)
+< 3 % of one A72 core
+pidstat -p over 10 min; estimate 0.99 % (Section 12).
+Resident memory
+< 40 MB RSS
+/proc/<pid>/status VmRSS after 72 h soak; estimate 30.1
+MB (Section 12).
+Flash writes
+Batched rollups only; < 50
+MB/day host writes
+/proc/diskstats delta attributed via /proc/<pid>/io;
+estimate 31.8 MB/day (Section 10).
+Update latency (counter change → DOM)
+< 1.5 s at 1 s cadence
+Synthetic counter injection in a fake collector, browser
+timestamp.
+Accessibility
+WCAG 2.2 AA; 0 serious axe
+violations
+axe-core in CI on every page and theme.
+Stability
+72 h SSE soak, no leak (RSS
+slope < 1 MB/day)
+Soak rig with 4 clients and reconnect storms.
+vyview · VyOS View-Only Dashboard — Design Brief
+2  Goals, non-goals, personas and jobs-to-be-done
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 8
+
+
+===== Page 9 =====
+3 Design principles
+The principles below are binding. Each one ends with the concrete rule a developer can test against.
+3.1 Read-only by construction
+The safest write path is one that does not exist. The HTTP router registers only GET handlers (pages, fragments, assets)
+and GET SSE streams. Collectors are typed functions that return data. Where an external executable is unavoidable, it is
+called via exec.CommandContext with a fixed path and an argument template from an allowlist, never through
+/bin/sh. Identifiers that reach a collector (interface names, chain names, peer keys, revision numbers) are validated
+against the set currently known to the state model, so they are never free text. Rule: a static test enumerates all
+registered routes and fails if any accepts a method other than GET/HEAD. A second test greps the binary's collector
+registry against the allowlist.
+3.2 Source transparency
+Every card, table and chart shows a source chip, for example show interfaces ethernet eth0 or nft -j list
+ruleset. Hovering shows the exact invocation, cadence, last refresh time and parser; clicking copies the command so
+the user can reproduce it in the CLI. Where vyview uses netlink instead of spawning a tool, the chip shows the equivalent
+CLI command and a 'via netlink' badge. Rule: a widget without a declared source fails the template lint.
+3.3 Overview first, zoom and filter, details on demand
+Every section starts with a summary (KPI strip, status counts), then a filterable list, then a detail drawer or page.
+Drill-down never loses context: breadcrumbs, the time range and filters persist in the URL. Rule: every list row is a link to
+its detail view, and every detail view links back to its list with filters intact.
+3.4 Progressive disclosure
+Default views show the 5–8 most useful fields. Rarely needed fields (driver counters, LSDB contents, raw JSON) are
+behind tabs, 'show all counters' toggles, or a 'raw output' panel that shows the unparsed command output. Columns can
+be added with a column chooser, and the choice is stored in localStorage.
+3.5 One shared time range
+A page has exactly one active time range (preset or absolute). All charts on the page follow it, crosshairs are synchronised
+across charts, and brushing on any chart zooms all of them. A 'compare to previous period' toggle overlays the prior
+equal-length window as a dashed series. The range is a Datastar signal ($range) mirrored in the URL (?range=24h or
+?from=…&to=…).
+3.6 Live by default, with pause
+Pages stream updates by default. Pause (space bar or toggle) freezes the view so the user can read or copy. The stream
+keeps running and the top bar shows 'N updates pending'. Resume applies the latest state in one morph rather than
+replaying every update. A stale-data badge appears on any widget whose last update is older than 2 × its cadence.
+3.7 Status colour semantics
+Five statuses are used: ok, warn, crit, info and unknown. Their colours come from a colour-blind-safe palette (Section
+6.1). Status is never shown by colour alone: it always pairs with an icon shape and a text label, and charts use shape and
+dash as well as hue for thresholds.
+3.8 Density control
+Three densities (comfortable, compact, wall) change spacing, row height and type scale via CSS variables. Compact suits
+the owner on a big monitor. Wall raises the type scale and hides secondary columns for kiosk use.
+vyview · VyOS View-Only Dashboard — Design Brief
+3  Design principles
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 9
+
+
+===== Page 10 =====
+3.9 Accessibility (WCAG 2.2 AA)
+  Contrast ≥ 4.5:1 for text and ≥ 3:1 for UI components and chart lines, in both themes. Focus indicators are visible and
+at least 2 px.
+ Full keyboard operation (Section 7.17), skip-to-content link, landmarks (nav, main, header), and
+aria-live="polite" on the alert strip only, so the screen reader is not flooded by 1-second updates.
+ Charts have a tabular alternative ('view as table') and a text summary (min/avg/max/current) for screen readers.
+ Target sizes ≥ 24 × 24 CSS px (WCAG 2.2 2.5.8). Motion respects prefers-reduced-motion.
+3.10 Works offline on the LAN
+All assets (JS, CSS, fonts, icons, chart libraries) are embedded in the binary and served by it. There are no CDN calls,
+web-font services or telemetry. VyOS documentation excerpts used by the 'explain' panel are bundled at build time, and
+deep links to docs.vyos.io are optional extras.
+vyview · VyOS View-Only Dashboard — Design Brief
+3  Design principles
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 10
+
+
+===== Page 11 =====
+4 Information architecture and navigation
+The hierarchy follows how an owner thinks about a router: first is it healthy, then the network (interfaces, traffic, routing,
+firewall, VPN, QoS, topology), then the platform (services, system, dataplane), then inspection tools (configuration, logs,
+diagnostics). Sections are grouped in the left rail under NETWORK, PLATFORM and INSPECT. Each section has tabs as
+secondary navigation.
+Figure 2 — Sitemap. Fourteen sections and their views; Settings is reached from the rail footer. The amber section is an optional module.
+4.1 Navigation model
+ Element
+Behaviour
+Left rail
+232 px wide, collapsible to a 64 px icon rail (shortcut [). Collapsible groups with a remembered state, an active-item
+indicator, and badge counts (alerts, failed units). On screens narrower than 640 px it is replaced by a bottom
+navigation bar with 5 destinations plus a 'More' sheet.
+Top bar
+Breadcrumbs · global search / command palette (Ctrl/⌘-K, /) · time-range picker · live/pause toggle · health pill
+(worst active status with a count; opens Health & Alerts) · theme toggle · user menu (session, sign out).
+Page header
+Title, a one-line context subtitle (for example the driver, uptime or rule count), secondary tabs, and page actions:
+copy link, pin view, export (CSV/JSON/PNG), and 'view source commands' for the page.
+Breadcrumbs
+Router › Section › Entity › Sub-view. Every crumb is a link and keeps the current time range and filters.
+Deep links
+All state that changes what is shown lives in the URL: path (entity), range/from/to, filter, sort, tab, sel
+(selected row), cmp (compare). Purely visual preferences (theme, density) stay in localStorage.
+Command palette
+One overlay for navigation ('go to wg0'), entity search (IP, MAC, hostname, rule, config path) and view commands
+(toggle theme, change range, pause). Results are grouped by type and keyboard-navigable (Section 7.1).
+Detail drawers
+Selecting a row opens a right-hand drawer (desktop) or a full-screen sheet (phone). The drawer has its own URL
+(sel=), so it can be shared and survives a reload.
+vyview · VyOS View-Only Dashboard — Design Brief
+4  Information architecture and navigation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 11
+
+
+===== Page 12 =====
+Figure 3 — Low-fidelity shell wireframe: a 232 px left rail, 56 px top bar, page header with tabs, and a 12-column content grid (16 px
+gutters). The Overview card spans are shown as an example layout.
+4.2 Section inventory
+The section list below is the authoritative content outline. Section 5 gives each page's widget-level specification.
+ Section
+Views (tabs / sub-pages)
+Primary question answered
+Overview (home)
+single page; kiosk variant
+Is everything OK, and what changed
+recently?
+Health & Alerts
+active, history, rules (read-only list of built-in checks)
+What is wrong right now and since when?
+Interfaces
+list; detail per type: ethernet, bridge, VLAN, bond, PPPoE, WireGuard,
+tunnels (GRE/VXLAN/GENEVE/6in4), wireless (if present), loopback/dummy;
+tabs: overview, counters, optics (DOM), addresses, queues, config
+Are links up, at what speed, and are they
+clean?
+Traffic & Clients
+top talkers, per-client usage, client inventory, protocol/port mix, conntrack
+table, flow map (Sankey)
+Who is using what, and where does traffic
+go?
+Routing
+summary, RIB/FIB v4/v6, static, BGP
+summary/neighbour/received/advertised, OSPF/OSPFv3 neighbours,
+interfaces and LSDB, BFD, policy routing, route-maps/prefix-lists, VRFs
+Is the control plane converged, and what
+path does a prefix take?
+Firewall & NAT
+rulesets/chains with counters, zone-policy matrix, groups, NAT/NAT66 rules,
+translations, conntrack statistics, flowtables
+What is allowed or blocked, and which
+rules actually match?
+VPN
+WireGuard interfaces and peers, IPsec IKE/Child SAs, OpenVPN,
+Tailscale/ZeroTier (if present)
+Are tunnels up, and when did they last
+handshake?
+Services
+DHCP/DHCPv6 (Kea), DNS forwarding, NTP/chrony, SSH sessions, LLDP,
+mDNS repeater, router advertisements, dynamic DNS, UPnP, SNMP, WAN
+load-balancing/failover
+Are the network services healthy and
+sized correctly?
+QoS / traffic policy
+policies, classes/tins, qdisc statistics, CAKE/FQ-CoDel details, bufferbloat
+probe
+Is the shaper doing its job under load?
+Dataplane (ASK2,
+optional)
+offload flows, CEETM queues/shapers, BMan pools, per-core softirq/IRQ,
+WireGuard acceleration, ACL/DDoS drops (planned), Suricata shunt
+Is hardware offload engaged and healthy?
+vyview · VyOS View-Only Dashboard — Design Brief
+4  Information architecture and navigation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 12
+
+
+===== Page 13 =====
+Section
+Views (tabs / sub-pages)
+Primary question answered
+System
+CPU (per core), load, memory, sensors, storage and flash wear, processes,
+systemd units, kernel and modules, images, boots, NIC driver/firmware,
+IRQ/softirq
+Is the box healthy and running what I
+think it runs?
+Configuration
+tree, set-commands, JSON, commit history, diff between any two revisions,
+explain panel
+What is configured, and what changed?
+Logs & Events
+journal live tail, firewall log, auth log, event timeline
+What happened, and in what order?
+Diagnostics (results
+only)
+scheduled ping/latency, traceroute, DNS, speed-test results
+Is the path to the internet healthy over
+time?
+Topology
+L2/L3 map, link drawer
+How is everything connected, and which
+links are busy?
+Settings (local)
+theme, density, refresh, kiosk rotation, pinned views, retention view
+(read-only)
+How does this browser display things?
+4.3 URL and state model
+URLs are hierarchical and human-readable (/interfaces/eth0?range=6h&tab=optics). The server treats the URL as
+the source of truth on first load and renders the complete page, so a deep link paints correctly without JavaScript.
+Datastar then takes over: the page's signals ($range, $live, $filter, $sort, $sel) are initialised from the URL with
+data-signals. A small history.replaceState effect keeps the URL in sync as signals change, and the SSE stream is
+reopened with the new signals. The full route map is in Appendix E.
+vyview · VyOS View-Only Dashboard — Design Brief
+4  Information architecture and navigation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 13
+
+
+===== Page 14 =====
+5 Page-by-page specification
+Each table below specifies one page: its widgets, the fields shown, the authoritative data source, refresh cadence,
+retained history, and interaction and empty/error behaviour. Sources list the VyOS op-mode command first, as the
+user-visible reference shown on the source chip, then the mechanism vyview actually uses (netlink, file, socket or
+structured op-mode output). Cadence values: 1 s for live rates, 5 s for counters and states, 30 s for slower control-plane
+data, on demand for data fetched when a view opens or an event fires.
+Collection strategy: prefer structured sources (netlink, JSON from vtysh, nft -j, ip -j, Kea JSON, op-mode
+raw/structured output from the vyos.opmode framework) over screen-scraping. A text-parser fallback layer exists for
+commands without structured output. Each parser has golden-file tests against captured outputs from VyOS 1.4, 1.5 and
+rolling (Section 14). Commands shown in this section are the reference; exact op-mode paths differ between releases, and
+the parser registry maps release → command → parser.
+Common states used throughout
+ State
+Presentation
+Rule
+Loading (first render)
+Skeleton blocks with the final geometry; no spinners.
+The server renders the last known state,
+so a skeleton appears only for data that
+has never been collected.
+Empty
+Short explanation and the CLI command to configure the feature
+(copyable), e.g. 'No WireGuard interfaces. Configure with set
+interfaces wireguard wg0 …'.
+Empty is not an error. The status is info.
+Unsupported / module
+absent
+The section is hidden from the rail; a direct link shows 'Not available on this
+platform' with the reason (e.g. 'ASK2 adapter not found').
+Collectors report capability at start-up and
+on SIGHUP.
+Stale
+Amber clock badge on the widget: 'updated 14 s ago (expected 5 s)'.
+Shown when age > 2 × cadence.
+Source error
+Red badge on the source chip; hover shows the error (timeout, exit code,
+parse error) and last success time; the widget keeps the last good data,
+dimmed.
+Errors are counted and shown on System ›
+vyview self-health.
+Partial
+A banner names the part that failed, e.g. 'IPv6 routes unavailable: vtysh
+timeout'.
+Each section renders independently.
+5.1 Overview (home)
+The landing page answers 'is everything OK, and what changed?' in a single viewport at 1440 × 900. Layout from the
+wireframe: alert strip (span 12, conditional); WAN status card (span 4) and hero throughput chart (span 8); seven KPI
+cards; top talkers and recent events (span 6 each).
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Alert strip
+Count and one-line text of
+active warn/crit checks; link to
+Health.
+Derived from Health rules (Section 5.15).
+5 s
+—
+Click opens Health filtered.
+Hidden when there are no
+alerts. aria-live polite.
+WAN status
+Link state, speed, public
+IPv4/IPv6, delegated prefix,
+gateway, gateway RTT/loss,
+DHCP lease left, failover state.
+show interfaces ethernet
+eth0, show dhcp client leases,
+WAN LB status · ip -j addr, netlink
+link, probe cache, show
+wan-load-balance.
+5 s (RTT
+10 s)
+RTT/loss 10 s
+× 48 h → 1 h ×
+2 y
+Copy IP; click → interface
+detail. Error: 'WAN interface
+not determined' with a setting
+to choose it.
+Hero throughput
+chart
+WAN rx/tx b/s, anomaly band
+(rolling baseline ± kσ),
+annotations for commits,
+reboots, link flaps and BGP
+events; synced crosshair.
+netlink IFLA_STATS64 (equiv. ip -j
+-s link) · events.
+1 s live;
+tier per
+range
+All tiers
+Brush-zoom, range picker,
+compare-previous toggle,
+export PNG/CSV, legend
+toggles.
+Links mini-list
+Up to 6 key interfaces: state
+dot, role, speed, current rx/tx.
+netlink link + ethtool speed.
+1 s
+—
+Click → detail. Overflow 'all
+interfaces ›'.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 14
+
+
+===== Page 15 =====
+Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+KPI: CPU
+Total % with 4-core breakdown
+on hover, load average,
+sparkline.
+/proc/stat, /proc/loadavg
+(equiv. show system cpu).
+1 s
+1 s × 15 min
+ring; tiers
+Click → System. Warn > 80 %
+for 5 min.
+KPI: Memory
+Used / total, available,
+sparkline.
+/proc/meminfo (equiv. show
+system memory).
+5 s
+tiers
+Click → System.
+KPI: SoC
+temperature
+Hottest sensor, crit threshold.
+/sys/class/thermal/thermal_z
+one*/temp, /sys/class/hwmon/*.
+5 s
+tiers
+Unknown if no sensors (VMs).
+KPI: Conntrack
+Entries / max and %.
+netlink CTNETLINK stats (equiv.
+conntrack -S, /proc/sys/net/n
+etfilter/nf_conntrack_count).
+5 s
+tiers
+Warn > 75 %, crit > 90 %.
+KPI: Active clients
+Count of clients seen in the last
+5 min (wired/wireless split if
+known).
+Client inventory join (Section 5.3).
+30 s
+tiers
+Click → Traffic & Clients.
+KPI: VPN peers up
+Up / configured; stale count.
+wg show all dump via wgctrl, show
+vpn ipsec sa.
+5 s
+tiers
+Warn on any stale peer.
+KPI: Offload hit
+ratio
+Share of flows (or bytes) on
+the HW path.
+ASK2 adapter (illustrative) or kernel
+flowtable counters.
+5 s
+tiers
+Hidden if no offload capability.
+Top talkers
+Top 5 clients + 'other' for the
+selected range: name, IP, rx, tx,
+trend.
+conntrack accounting rollup (Section
+5.3).
+10 s
+per-client
+top-N tiers
+Click → client; sort rx/tx; range
+follows the page.
+Recent events
+Last 10 events: time, type icon,
+summary.
+Event detector (journal, commits, link,
+routing, probes).
+event-dri
+ven
+30 d event log
+Click → Logs timeline at that
+time.
+5.2 Interfaces — list
+A dense, filterable inventory of all interfaces with live rates. Type filter chips, text filter, and a column chooser.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Type chips
+All / Ethernet / Bridge / VLAN /
+Bond / WireGuard / PPPoE /
+Tunnel / Wireless / Loopback,
+with counts.
+Interface type from VyOS config +
+netlink IFLA_INFO_KIND.
+on
+change
+—
+Multi-select; reflected in
+?type=.
+Interface table
+State, name, type, description,
+addresses (v4/v6), MTU, link
+speed/duplex, rx/tx rate, 1 h
+sparkline, errors/drops Δ, VRF,
+master (bridge/bond).
+show interfaces · ip -j -s
+link, ip -j addr, ethtool netlink
+(ethtool eth0), /sys/class/net
+/*/statistics/*.
+1 s rates;
+5 s rest
+per-iface tiers
+Sort any column, sticky header,
+row click → detail; copy
+address. Empty: none. Error:
+per-row badge.
+Status summary
+Up / down / admin-down /
+no-carrier counts.
+netlink operstate + admin flags.
+1 s
+—
+Click filters.
+Source footer
+Lists all commands used on the
+page.
+—
+—
+—
+Copy all.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 15
+
+
+===== Page 16 =====
+5.3 Interfaces — detail (ethernet; variants below)
+Tabs: Overview · Counters · Optics (DOM) · Addresses · Queues · Config. The overview tab carries KPI strip, throughput,
+packets/s, errors and drops, DOM summary and addresses.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Header
+Name, state pill, negotiated
+mode (e.g. 10000baseSR/Full),
+description, driver, MAC, MTU,
+VRF.
+show interfaces ethernet
+eth0 · netlink + ethtool GLINKMODES,
+ethtool -i eth0 (driver/firmware).
+5 s
+—
+Copy MAC. Error: driver info
+unavailable → omit.
+KPI strip
+rx/tx b/s with p95 for range,
+pps, avg packet size, errors,
+drops, link flaps 24 h.
+netlink IFLA_STATS64; flap events
+from link notifications.
+1 s
+tiers
+Click a KPI to focus the
+matching chart.
+Throughput chart
+rx/tx mirrored (rx up, tx down)
+with link-speed reference line.
+netlink stats.
+1 s
+all tiers
+Synced crosshair, brush,
+compare-previous,
+annotations.
+Packets/s chart
+rx/tx pps;
+unicast/multicast/broadcast
+split on toggle.
+netlink stats64 + ethtool -S where
+available.
+1 s
+tiers
+Toggle split.
+Errors & drops
+chart
+crc, frame, fifo, missed, rx/tx
+dropped.
+ethtool -S eth0 (driver-specific
+names mapped), netlink error counters.
+5 s
+tiers
+Empty state 'no errors in
+range' (ok).
+Driver counters
+table
+All non-zero ethtool -S
+counters with value, Δ over
+range, rate, trend.
+ethtool -S eth0 (ethtool netlink /
+ETHTOOL_GSTATS). For DPAA1: FMan
+MAC counters, QMan/BMan related
+counters.
+5 s
+selected
+counters only
+(≤ 32 per
+iface)
+Filter by name; 'show zero
+counters'; pin a counter to
+keep history.
+Optics (DOM)
+Vendor, PN, SN, wavelength,
+Tx/Rx power (dBm),
+temperature, Vcc, bias, with
+alarm/warn thresholds.
+show interfaces ethernet
+eth0 transceiver (where available)
+· ethtool -m eth0 (SFF-8472/8636
+decode).
+300 s
+(I2C is
+slow)
+1 min × 14 d
+→ 1 h × 2 y
+Threshold bars; warn near
+limits. Empty for RJ45 ports or
+modules without DOM.
+Addresses &
+neighbours
+IPv4/IPv6 addresses with origin
+(static/dhcp/slaac/link),
+gateway neighbour state and
+MAC.
+ip -j addr, ip -j neigh, show
+dhcp client leases.
+5 s
+—
+Copy.
+Queues
+Per-queue rx/tx packets
+(multiqueue), qdisc attached,
+XPS/RPS maps, IRQ affinity.
+ethtool -S per-queue counters, tc
+-j -s qdisc show dev eth0,
+/proc/interrupts,
+/sys/class/net/eth0/queues/*.
+5 s
+10 s × 48 h
+Heat strip per queue.
+Config tab
+The interface's config subtree
+(redacted), as tree and
+set-commands.
+Running config.
+on
+commit
+commit
+history
+Link to Configuration at that
+path.
+Variants: bridge adds members (state, STP role, learning), the FDB size and VLAN filtering table (bridge -j vlan, bridge
+-j fdb). VLAN shows parent, VID, and protocol. Bond shows mode, LACP partner and per-slave state
+(/proc/net/bonding/bond0). PPPoE shows session id, AC name, LCP echo RTT, uptime and reconnects. WireGuard links
+to VPN › peers. Tunnels (GRE, VXLAN, GENEVE, 6in4, SIT) show local/remote endpoints, key/VNI and underlay interface.
+Wireless (if present) shows SSID, channel, width, clients and per-station signal (iw dev wlan0 station dump).
+Loopback/dummy shows addresses only.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 16
+
+
+===== Page 17 =====
+5.4 Traffic & Clients
+Who uses bandwidth and where flows go. Per-client accounting comes from conntrack byte/packet accounting
+(nf_conntrack_acct=1), rolled up per client IP and joined to identity sources. Clients are identified by MAC where
+possible, with IPv4 and IPv6 addresses merged.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Per-client stacked
+area
+Top 6 clients + 'other' rx
+(toggle tx); legend with totals.
+CTNETLINK dump with counters (equiv.
+conntrack -L -o extended),
+aggregated per client every 10 s.
+10 s
+top-N 50 ×
+tiers; 'other'
+bucket
+Click legend to isolate; hover
+crosshair lists values; range
+follows the page.
+Flow map
+(Sankey)
+Bytes between ingress
+interfaces/zones (WAN, VPN)
+and LAN segments over the
+range.
+conntrack zone/interface attribution +
+rollups.
+60 s
+1 min tiers
+Hover a band for bytes; click a
+node to filter the table.
+Client inventory
+Name, IPv4/IPv6, MAC, vendor
+(OUI), segment/VLAN, identity
+source (DHCP/static/ARP/NDP/
+LLDP/mDNS), rx/tx 24 h, flows,
+usage spark, last seen.
+show dhcp server leases / Kea
+lease4-get-all,
+lease6-get-all · ip -j neigh ·
+show lldp neighbors (lldpcli
+-f json) · conntrack rollup.
+30 s
+per-client
+tiers (top-N)
+Search, sort, segment filter;
+privacy-randomised MACs
+flagged; row → client detail.
+Client detail
+Identity merge, sessions, top
+destinations (by
+ASN/hostname where known),
+ports, hourly heatmap, firewall
+hits for this IP.
+Above + nft log matches + DNS
+forwarder (optional).
+10 s
+per-client
+tiers
+Copy; jump to conntrack
+filtered to this client.
+Protocol / port
+mix
+Bytes by L4 protocol and
+well-known service port (top
+10 + other).
+conntrack tuples aggregated.
+60 s
+1 min × 14 d
+Click filters conntrack table.
+Conntrack table
+Proto, original src→dst,
+reply/NAT tuple, state,
+timeout, bytes, packets, mark,
+zone, path (HW/SW offload).
+show conntrack table ipv4 ·
+CTNETLINK dump (equiv. conntrack
+-L, /proc/net/nf_conntrack).
+5 s
+snapshot
+while
+open
+none (live)
+Virtualised table (50k+ rows),
+structured filter chips, row
+drawer with related
+client/rule/route/QoS. No
+kill/flush actions.
+Privacy: per-client tracking in a household is sensitive. Per-client history is on by default only for the top-N (default 50) and
+can be disabled or limited to aggregate per-segment counts in vyview's config (Section 11.9).
+5.5 Routing
+Control-plane state from FRR, read as JSON through vtysh -c '… json' (FRR's JSON output is the most stable
+structured interface), plus kernel FIB via netlink.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Summary
+RIB/FIB counts per protocol
+and AFI, BGP peers up/total,
+OSPF full adjacencies, BFD
+sessions, VRFs.
+show ip route summary · vtysh
+-c 'show ip route summary
+json', show ipv6 route summary
+json.
+30 s
+counts 1 min
+× 14 d → 1 h ×
+2 y
+Click counts to filter.
+RIB / FIB (v4, v6)
+Prefix, protocol, next hop(s),
+interface, AD/metric, age,
+selected/FIB flags, VRF.
+show ip route, show ipv6 route
+· vtysh … json, ip -j route
+show table all, ip -j -6 route
+show table all.
+30 s (diff-
+based)
+churn count
+only
+Longest-match lookup box;
+protocol chips; copy; ECMP
+expanded in drawer.
+Static routes
+Configured vs installed,
+next-hop reachability, BFD
+binding.
+Config + RIB.
+30 s
+—
+Highlights
+configured-but-not-installed.
+BGP summary /
+neighbours
+Neighbour, description,
+remote AS, state, up/down,
+prefixes
+received/accepted/sent, last
+error/notification, BFD state.
+show ip bgp summary · vtysh -c
+'show bgp vrf all summary
+json', show bgp neighbors
+json.
+30 s
+state & prefix
+counts 1 min
+tiers
+Row → neighbour detail;
+'why?' hint for
+Idle/Active/Connect based on
+last error.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 17
+
+
+===== Page 18 =====
+Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+BGP received /
+advertised
+Prefixes with attributes
+(AS-path, communities,
+local-pref, MED), policy result.
+show bgp neighbors <ip>
+received-routes json (needs
+soft-reconfiguration inbound) /
+advertised-routes json.
+on
+demand
+—
+Shown only if supported;
+empty state explains
+soft-reconfiguration.
+Paginated.
+OSPF / OSPFv3
+Neighbours (state, DR/BDR,
+dead time), interfaces (area,
+cost, type), LSDB summary by
+type, SPF runs.
+show ip ospf neighbor · vtysh
+… 'show ip ospf neighbor
+json', show ip ospf interface
+json, show ip ospf database
+json, show ipv6 ospf6 neighbor
+json.
+30 s
+adjacency
+changes as
+events
+LSDB is on demand (can be
+large).
+BFD
+Peer, state, uptime, intervals,
+echo, diagnostics.
+show bfd peers · vtysh -c
+'show bfd peers json'.
+5 s
+state events
+—
+Policy routing &
+route-maps
+PBR rules with match/set and
+hit counters; route-maps,
+prefix-lists and community-lists
+rendered readably.
+Config + nft mangle counters for PBR;
+vtysh -c 'show route-map
+json'.
+60 s
+—
+Explain panel decodes each
+term.
+VRFs
+VRF list, table id, member
+interfaces, route counts.
+show vrf · ip -j vrf, netlink.
+30 s
+—
+VRF selector applies to all
+routing views.
+RIB size & churn
+chart
+Prefix count and
+updates/withdrawals per 5
+min.
+BGP/RIB counters.
+30 s
+tiers
+Annotations for neighbour
+state changes.
+5.6 Firewall & NAT
+VyOS 1.4+ firewall is nftables-based. Rules map to nft rules carrying VyOS-generated comments/handles, so counters can
+be joined back to the VyOS rule number.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Chain list
+Family/hook/chain or named
+ruleset, default action, rule
+count; groups summary.
+show firewall · nft -j list
+ruleset (via netlink).
+on
+change +
+60 s
+—
+Select chain; search.
+Rule table
+Rule #, action, description,
+match summary, packets,
+bytes, 24 h hit sparkline, last
+hit time.
+show firewall ipv4 forward
+filter · nft counters joined by rule
+comment/handle.
+5 s
+per-rule
+packets/bytes
+1 min × 14 d
+(capped 120
+rules)
+Hide 0-hit; sort by hits; row
+drawer with set-commands,
+top sources (from log), 'copy as
+CLI'.
+Zone-policy
+matrix
+From-zone × to-zone with
+default action and number of
+exceptions; colour by action.
+show firewall zone-policy
+(release-dependent) · config.
+on
+commit
+—
+Cell → filtered rule list.
+Groups
+Address/network/port/domain
+/interface groups; members;
+where used.
+show firewall group · nft -j
+list sets.
+60 s
+—
+Domain groups show resolved
+element counts.
+NAT / NAT66
+rules
+Source/destination NAT rules:
+match, translation, counters.
+show nat source rules, show
+nat destination rules, show
+nat66 source rules · nft nat table
+counters.
+5 s
+per-rule hits 1
+min tiers
+Row drawer; copy.
+NAT translations
+Live translations:
+inside/outside tuples,
+protocol, timeout.
+show nat source translations ·
+CTNETLINK with NAT status bits.
+5 s while
+open
+—
+Shares the virtualised table
+component.
+Conntrack
+statistics
+Entries/max, new/s, found,
+invalid, insert_failed, drop,
+early_drop, search_restart per
+CPU.
+show conntrack statistics ·
+conntrack -S (CTNETLINK stats).
+5 s
+tiers
+Per-CPU view toggle.
+Flowtables
+Flowtable name, devices,
+offload flag (hw/sw), number
+of offloaded flows.
+nft -j list flowtables;
+conntrack OFFLOAD/HW_OFFLOAD
+status.
+10 s
+count tiers
+Links to Dataplane for ASK2
+hardware stats.
+Firewall log
+Recent log hits with prefix,
+in/out, src/dst, proto/port.
+journald kernel messages with VyOS log
+prefixes.
+event
+30 d (journal)
+Filter by rule; jump to rule.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 18
+
+
+===== Page 19 =====
+5.7 VPN
+WireGuard, IPsec (strongSwan via swanctl/VICI), OpenVPN, and Tailscale/ZeroTier when installed as containers.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+WireGuard
+interface cards
+Listen port, peers up/total,
+rx/tx, accel status (if ASK2).
+show interfaces wireguard
+wg0 summary · wgctrl (generic netlink;
+equiv. wg show all dump).
+5 s
+tiers
+Click → peers tab.
+Peer table
+Name (from config
+description), public key (short),
+endpoint, allowed IPs, latest
+handshake age, rx/tx,
+sparkline, keepalive.
+wgctrl + config descriptions.
+5 s
+per-peer rx/tx
++ handshake
+age tiers
+Stale: > 3 min warn, > 15 min
+crit when traffic is expected.
+Copy public key. Private keys
+are never read.
+Handshake-age
+chart
+Age over the range with
+thresholds.
+derived.
+5 s
+tiers
+Annotations for endpoint
+changes (roaming).
+IPsec
+IKE SAs (state, version,
+proposal, peer, rekey in), Child
+SAs (traffic selectors, bytes,
+packets, lifetimes).
+show vpn ike sa, show vpn
+ipsec sa · VICI list-sas (read-only)
+or swanctl --list-sas.
+10 s
+per-tunnel
+bytes tiers
+Drawer with proposal details;
+no initiate/terminate.
+OpenVPN
+Server/client instances,
+connected clients, virtual IPs,
+bytes, connected since.
+show openvpn server · status
+file/management interface (read-only
+commands).
+30 s
+tiers
+—
+Tailscale /
+ZeroTier
+Node status, peers,
+direct/relayed path.
+Container status + tailscale
+status --json / zerotier-cli
+-j peers via allowlist.
+60 s
+—
+Hidden if not present.
+5.8 Services
+Each service has a status header (systemd unit state, uptime, version) and service-specific widgets.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+DHCP / DHCPv6
+(Kea)
+Pools with utilisation
+(used/total, %), leases (IP,
+MAC, hostname, expiry, state),
+declines, static mappings,
+failover state.
+show dhcp server leases, show
+dhcp server statistics, show
+dhcpv6 server leases · Kea
+control socket: lease4-get-all,
+stat-lease4-get,
+statistic-get-all.
+30 s
+pool use 1
+min × 14 d →
+1 h × 2 y
+Warn > 90 % pool. Search
+leases. Empty: 'DHCP server
+not configured'.
+DNS forwarding
+Queries/s, cache hit %, cache
+entries, outgoing queries,
+servfail/nxdomain,
+per-upstream latency, answers
+by type.
+show dns forwarding
+statistics · rec_control
+get-all (PowerDNS Recursor).
+30 s
+tiers
+Chart of q/s vs hit rate.
+NTP (chrony)
+Sources (state, stratum, poll,
+reach, offset, jitter), tracking
+(ref, system time offset,
+frequency), clients served.
+show ntp (release-dependent) ·
+chronyc -c sources, chronyc -c
+tracking, chronyc -c clients.
+60 s
+offset/jitter
+tiers
+Warn if unsynchronised > 10
+min.
+SSH sessions
+Active sessions: user, from,
+since, TTY.
+show users · ss -tnp state
+established '( sport = :22
+)', utmp.
+30 s
+auth events
+(journal)
+No kill action.
+LLDP
+Neighbours per local port:
+chassis, port, system name,
+capabilities, VLANs, mgmt IP.
+show lldp neighbors · lldpcli
+-f json show neighbors
+details.
+60 s
+change
+events
+Feeds topology.
+mDNS repeater
+Status, interfaces, reflected
+service count if available.
+unit state + config.
+60 s
+—
+Minimal.
+Router
+advertisements
+Per-interface prefixes, flags
+(M/O/A), lifetimes, RDNSS;
+RS/RA counters.
+config + radvd state + ip -j -6
+neigh.
+60 s
+—
+—
+Dynamic DNS
+Per host: provider, last update,
+current IP vs published IP, last
+result.
+show dns dynamic status ·
+ddclient cache/state file.
+60 s
+update events
+Warn on mismatch > 15 min.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 19
+
+
+===== Page 20 =====
+Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+UPnP / NAT-PMP
+Active port mappings (ext port,
+int IP:port, proto, description,
+lease).
+miniupnpd lease file (path per release) ·
+nft DNAT chain.
+30 s
+—
+Highlight mappings to IoT
+segments.
+SNMP
+Agent status, listen addresses,
+v3 users (names only),
+requests/s.
+show snmp · unit state.
+60 s
+—
+Communities are redacted.
+WAN
+load-balancing /
+failover
+Per WAN: health-check
+targets, state, RTT/loss, flaps,
+active weights.
+show wan-load-balance, show
+wan-load-balance status ·
+health-check state.
+5 s
+state + RTT
+tiers
+Failover events annotated on
+charts.
+5.9 QoS / traffic policy
+Shaper and AQM behaviour. Since VyOS 1.4 the config node is qos (formerly traffic-policy), and op-mode output
+varies by release. The primary source is therefore tc JSON via netlink.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Policy list
+Policy, type (shaper/HTB,
+CAKE, FQ-CoDel, limiter…),
+attached interface/direction.
+show qos / show queueing
+(release-dependent) · config.
+on
+commit
+—
+Select policy.
+KPI strip
+Shaper rate, backlog, drops/s,
+ECN marks/s, peak delay,
+bufferbloat grade.
+tc -j -s qdisc show dev eth0
+(netlink RTM_GETQDISC with stats).
+5 s
+tiers
+—
+Classes / CAKE
+tins
+Threshold, sent bytes/packets,
+drops, marks, backlog,
+peak/avg delay, sparse/bulk
+flows, share bar.
+tc -j -s qdisc (CAKE xstats), tc
+-j -s class show dev … (HTB).
+5 s
+per-class 4
+metrics × tiers
+Sort; per-class drawer with
+charts.
+Drops vs marks
+Rates over time.
+derived.
+5 s
+tiers
+Annotations.
+Backlog per class
+Stacked bytes queued.
+qdisc/class stats.
+5 s
+10 s × 48 h
+—
+Latency under
+load
+Idle RTT vs RTT during
+download/upload saturation;
+grade A+…F; reference run
+without shaper.
+Scheduled probe (Section 5.17):
+irtt/flent-style or built-in, results cached.
+per
+probe
+probe results
+90 d
+Select run; compare runs.
+5.10 Dataplane — hardware offload (ASK2 module, optional)
+A pluggable module for the LS1046A DPAA1 dataplane (FMan, QMan, BMan). The module registers an adapter that
+reports capability. If the adapter is absent, as on stock x86 VyOS, the section shows kernel flowtable statistics only or is
+hidden. All ASK2 data sources below are illustrative placeholders, to be defined by ASK2.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Module banner
+Adapter version, driver,
+offload features enabled.
+ask2ctl --json (to be defined by ASK2);
+ethtool -i.
+on start
+—
+Graceful-degradation notice.
+Flow KPIs
+HW-offloaded flows,
+software-path flows, hit ratio
+(flows and bytes), HW
+forwarded b/s.
+ask2ctl flows JSON (TBD) · conntrack
+HW_OFFLOAD status bits.
+5 s
+tiers
+Click → conntrack filtered by
+path.
+HW vs SW flows
+chart
+Stacked counts; annotations
+for table-full and policy
+reloads.
+ask2ctl (TBD).
+5 s
+tiers
+Brush/zoom.
+CEETM class
+queues
+Per class queue: depth, drops,
+ECN marks, CR/ER shaper
+rates; heatmap of depth over
+time.
+DPAA1 debugfs/sysfs CEETM counters
+(TBD) · ethtool -S FMan counters.
+5 s (heat
+map 1
+min)
+16 queues × 3
+metrics tiers
+Cell hover shows exact values;
+row → queue chart.
+BMan buffer
+pools
+Free buffers per pool vs
+capacity (512 noted as a risk),
+depletion events.
+ethtool -S bp_count, BMan
+sysfs/debugfs (TBD).
+1 s
+1 s × 15 min;
+tiers
+Gauge turns warn < 30 %, crit <
+15 % free. Depletion events
+annotated.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 20
+
+
+===== Page 21 =====
+Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Per-core softirq /
+IRQ
+NET_RX/NET_TX softirq share
+per core, IRQs per
+queue/portal.
+/proc/softirqs,
+/proc/interrupts, /proc/stat.
+5 s
+tiers
+Imbalance hint when one core
+> 2× mean.
+WireGuard
+acceleration
+Offloaded tunnels,
+encrypt/decrypt pkts and b/s,
+fallbacks to software.
+ask2ctl wg JSON (TBD).
+5 s
+tiers
+Hidden if not enabled.
+ACL / DDoS drops
+(planned)
+Hardware drop rules and their
+hit counters.
+ask2ctl acl JSON (TBD).
+5 s
+tiers
+Placeholder until defined.
+Suricata
+inspection &
+shunt
+Verdict counters:
+inspected→shunted, inspected
+full, alert, drop; shunt latency.
+Suricata eve.json stats events /
+unix-socket dump-counters · ask2ctl
+shunt (TBD).
+10 s
+tiers
+Link to logs filtered by suricata.
+5.11 System
+Host health, platform identity and what is installed.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Identity header
+Version, build, kernel,
+architecture, hardware model,
+serial (masked optional),
+uptime.
+show version, show hardware
+cpu · /proc/version, /sys/firmw
+are/devicetree/base/model,
+uname.
+on start
+—
+Copy version block.
+Per-core CPU
+heatmap
+Hour-of-day × day, per core
+p95; live per-core bars.
+/proc/stat.
+1 s
+1 s ring; 1 h ×
+2 y p95
+Hover cell; click jumps the
+range.
+Load & pressure
+Load averages; PSI
+cpu/memory/io.
+/proc/loadavg,
+/proc/pressure/*.
+5 s
+tiers
+—
+Memory
+Used, cached, available, slab,
+swap; top consumers.
+/proc/meminfo,
+/proc/<pid>/status.
+5 s
+tiers
+—
+Sensors
+Temperatures, fans, voltages,
+PSU with thresholds.
+/sys/class/hwmon/*/temp*_inp
+ut etc., /sys/class/thermal/*.
+5 s
+tiers
+Unknown on VMs.
+Storage & flash
+wear
+Mounts usage; eMMC life-time
+estimate A/B, pre-EOL; bytes
+written/day; vyview's own
+writes.
+show system storage · df,
+/proc/diskstats, /sys/class/m
+mc_host/*/mmc*/life_time,
+pre_eol_info (or mmc extcsd
+read).
+60 s (EXT
+_CSD 1
+h)
+tiers
+Warn disk > 85 %, wear ≥ 0x08
+(70–80 %) or pre-EOL warning.
+Processes
+Top N by CPU/RSS; threads.
+/proc/<pid>/stat, status.
+5 s while
+open
+—
+No signals/kill.
+systemd units
+Unit, state, since, memory,
+CPU; failed units first.
+systemctl list-units
+--output=json (via D-Bus read-only).
+30 s
+failure events
+Filter failed.
+Kernel & modules
+Kernel version/cmdline, loaded
+modules, taint flags, sysctls of
+interest.
+/proc/cmdline, /proc/modules,
+/proc/sys/kernel/tainted.
+on start
+—
+—
+Images & boots
+Installed images
+(default/running), boot history
+with reason, unclean
+shutdowns.
+show system image · journalctl
+--list-boots -o json.
+on start
++ 1 h
+boot events
+No set-default/delete actions.
+NIC drivers /
+firmware
+Per NIC: driver, version,
+firmware, bus.
+ethtool -i <if>.
+on start
+—
+—
+IRQ / softirq
+distribution
+Per-CPU IRQ counts per device,
+softirq types.
+/proc/interrupts,
+/proc/softirqs.
+5 s
+tiers
+(aggregated)
+Imbalance hint.
+vyview self-health
+Collector durations, errors,
+RSS, goroutines, SSE clients,
+store size, write rate.
+internal metrics.
+5 s
+tiers
+Useful for developers.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 21
+
+
+===== Page 22 =====
+5.12 Configuration
+Read-only configuration explorer with history. Secrets are redacted on the server before any rendering; there is no reveal
+control.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Config tree
+Collapsible tree of the running
+config; search by path or value;
+node counts.
+show configuration json
+(op-mode) or VyOS configtree of the
+active config; refreshed on commit.
+on
+commit
+commit
+archive
+Keyboard tree navigation; copy
+path; deep link ?path=.
+set-commands
+view
+Flat set … lines for the whole
+config or the selected subtree.
+show configuration commands (+
+vyview redaction; strip-private as
+defence in depth).
+on
+commit
+—
+Copy; download.
+JSON view
+Pretty JSON of the selected
+subtree.
+as tree.
+on
+commit
+—
+Collapse levels.
+Commit history
+Revision, time, user, via
+(cli/api/boot), comment.
+show system commit ·
+/config/archive/commits
+(read-only).
+on
+commit
+archive (VyOS
+keeps N
+revisions)
+Select two revisions to diff.
+Diff
+Side-by-side or unified diff
+between any two revisions, or
+as set-commands; secret
+changes shown as '(changed)'.
+show system commit diff <n> ·
+archived config.boot.N.gz diffed
+in-process.
+on
+demand
+—
+Syntax highlight, jump
+between hunks, copy, export.
+Explain panel
+Description of the selected
+node, its effective state,
+related pages.
+Bundled VyOS docs excerpts; links to
+docs.vyos.io.
+on
+demand
+—
+Offline-capable.
+5.13 Logs & Events
+Journal-based log viewer and a curated event timeline that feeds chart annotations.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Severity
+histogram
+Events/min stacked by severity
+with annotations.
+journald via sd-journal reader (equiv.
+journalctl -o json -f).
+event (1
+s
+buckets)
+per-minute
+counts 30 d
+Brush to select time window
+for the tail.
+Live tail
+Time, severity, unit/identifier,
+message; highlight matches.
+show log · journald.
+event
+journal
+retention
+(system)
+Filters: unit, severity, facility,
+regex text; pause with pending
+count; copy line; permalink by
+cursor.
+Firewall log
+Parsed kernel log lines with
+VyOS prefixes.
+show log firewall
+(release-dependent) · journald kernel.
+event
+journal
+Jump to rule.
+Auth log
+SSH/console logins, sudo, API
+auth, vyview logins.
+show log authorization ·
+journald
+_SYSTEMD_UNIT=ssh.service,
+auth facility.
+event
+journal
+—
+Event timeline
+Commits, reboots, link flaps,
+BGP/OSPF/BFD changes, WG
+stale, DHCP pool alerts, unit
+failures, probe results.
+Event detector.
+event
+30 d (vyview
+event log)
+Click → time-aligned view of
+affected page.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 22
+
+
+===== Page 23 =====
+5.14 Health & Alerts (view-only)
+Built-in derived checks, evaluated in-process. Alerts are shown as a list and as chart annotations. There are no outbound
+notifications in v1.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Active alerts
+Severity, check, entity, since,
+current value vs threshold, link
+to evidence.
+Health rules engine.
+5 s
+alert history
+90 d
+Sort by severity/age;
+acknowledge is local-only
+(browser) in v1.
+Built-in checks
+WAN down; gateway loss > 5 %
+for 2 min; BGP neighbour not
+Established > 2 min; disk > 85
+%; temperature > warn;
+certificate expiry < 21 d (VyOS
+PKI and https cert); DHCP pool
+> 90 %; WireGuard handshake
+stale > 3 min with expected
+traffic; conntrack > 75 %/90 %;
+failed systemd unit; NTP
+unsynchronised > 10 min;
+eMMC pre-EOL warning.
+Various (each check names its sources).
+5–60 s
+—
+Thresholds visible; v1
+thresholds are set in vyview
+config, not in the UI.
+Alert history
+Timeline of raised/cleared
+alerts.
+alert log.
+event
+90 d
+Filter by check.
+5.15 Diagnostics (results only)
+Shows cached results from scheduled probes run by vyview's probe scheduler with fixed targets from config. In v1 there
+is no user-triggered execution. A risk-gated v2 option is discussed in Section 15.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Latency & loss
+Per target RTT p50/p95, loss,
+jitter.
+Built-in ICMP/UDP probes (unprivileged
+ICMP sockets via
+net.ipv4.ping_group_range, or a
+privileged helper).
+10 s
+tiers
+Targets: gateway, 2 anycast
+DNS, VPN peers, custom.
+Traceroute cache
+Last path per target with
+per-hop RTT; path-change
+events.
+Scheduled mtr --json / built-in.
+15 min
+30 d of paths
+Diff paths.
+DNS probes
+Resolution time via local
+forwarder and upstreams.
+Built-in resolver probe.
+60 s
+tiers
+—
+Speed tests
+Down/up Mb/s, latency under
+load, server, time.
+Nightly scheduled test (optional; off by
+default, consumes bandwidth).
+schedule
+90 d
+Compare runs.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 23
+
+
+===== Page 24 =====
+5.16 Topology map
+An auto-drawn L2/L3 diagram built from interfaces, bridges, VLANs, LLDP neighbours, routes and tunnels. Link colour
+shows utilisation.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Map canvas
+Nodes: router, upstreams (ISP,
+ONT, modem), switches/APs
+from LLDP, segments
+(bridges/VLANs) with client
+counts, tunnel peers, routing
+neighbours.
+Interfaces + lldpcli -f json +
+routes + WG/IPsec + BGP/OSPF.
+30 s stru
+cture; 5 s
+utilisatio
+n
+—
+Pan/zoom; drag to pin
+positions (localStorage);
+layered layout; keyboard focus
+order.
+Link utilisation
+Per link b/s and % of speed;
+colour bands < 50 / 50–80 / >
+80 %; dashed for tunnels.
+netlink stats.
+5 s
+via interface
+tiers
+Click → link drawer.
+Link drawer
+Local/remote port, VLANs,
+speed, MTU match, errors, 1 h
+chart, links to interface and
+clients.
+as above.
+5 s
+—
+—
+5.17 Dashboard settings (local)
+Per-browser preferences stored only in localStorage. The server stores no per-user UI state, which keeps the server
+stateless and leaves nothing to write.
+ Widget
+Fields / purpose
+Source (op-mode · Linux)
+Cadence
+History
+Interactions · empty / error
+states
+Appearance
+Theme (dark/light/auto),
+density
+(comfortable/compact/wall),
+reduced motion override.
+localStorage.
+—
+—
+Applied instantly via CSS
+variables.
+Live behaviour
+Default live/pause, maximum
+update rate (1 s/2 s/5 s), pause
+when tab hidden.
+localStorage → signals.
+—
+—
+Affects only this browser's
+stream.
+Kiosk
+Pages to rotate, dwell time,
+hide chrome.
+localStorage; URL ?kiosk=1.
+—
+—
+—
+Pinned views
+Saved deep links with names.
+localStorage.
+—
+—
+Export/import as JSON.
+Retention
+(read-only)
+Shows tiers, sizes, oldest data,
+write rate.
+vyview store metadata.
+60 s
+—
+Changes are made in vyview
+config only.
+5.18 Cross-page widgets
+ Widget
+Specification
+Source chip
+Monospace text of the reference command; tooltip: invocation, mechanism (netlink/file/exec/socket), cadence, last
+success, parser version. Click copies the command. Red when the last collection failed.
+KPI card
+Title + icon, value with unit, delta vs previous period, sub-label, sparkline (range-aware), status bar on the left edge.
+Click → owning page.
+Time-series chart
+uPlot custom element <vy-chart>; data from signals; synced cursor key page; annotations; threshold lines; legend
+with toggle; 'view as table'.
+Virtual table
+Fixed row height, renders visible rows ± overscan; server-side filter and sort for large sets; client-side for < 2k rows.
+Drawer
+Right panel 380–520 px, own URL sel=, Esc closes, focus trapped.
+Empty / error blocks
+As defined in 'Common states' above.
+vyview · VyOS View-Only Dashboard — Design Brief
+5  Page-by-page specification
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 24
+
+
+===== Page 25 =====
+6 Visual design system
+The visual language is a calm, dark-first operational UI: navy and charcoal surfaces, one teal/cyan accent, colour reserved
+for status and data series, and monospace for anything a user might copy. All values are design tokens exposed as CSS
+custom properties. UnoCSS theme keys reference these variables, so themes swap without rebuilding CSS.
+6.1 Colour tokens
+ Token
+Dark (default)
+Light
+Use
+--bg
+#0B1220
+#F7F9FC
+Page background
+--rail
+#0D1526
+#EEF2F7
+Left rail, bottom nav
+--surface
+#111A2E
+#FFFFFF
+Cards, panels
+--surface-2
+#16213A
+#F1F5F9
+Table headers, inputs, chips
+--border
+#22304D
+#D5DEE9
+Card borders, dividers
+--text
+#E6EDF7
+#0F172A
+Primary text (contrast 15.1:1 / 17.4:1)
+--text-muted
+#93A1B8
+#475569
+Secondary text (≥ 4.6:1 both themes)
+--accent
+#22D3EE
+#0E7490
+Focus, selection, links, primary series
+--accent-2
+#14B8A6
+#0F766E
+Secondary accent
+--ok
+#10B981
+#047857
+Healthy, up, accept
+--warn
+#F5A524
+#B45309
+Degraded, approaching threshold, reject
+--crit
+#F0573A
+#B91C1C
+Down, failed, drop
+--info
+#60A5FA
+#1D4ED8
+Informational, jump/mixed
+--unknown
+#8B95A5
+#64748B
+No data, standby, not applicable
+Colour-blind safety. The status hues are chosen to separate in deuteranopia and protanopia simulation: green-teal vs
+orange vs vermilion vs blue differ in luminance as well as hue. They are never the only cue: ok (filled circle), warn
+(triangle), crit (square or cross), info (diamond) and unknown (hollow circle) use distinct icon shapes, and the status text
+is always present. Chart threshold lines use dashes.
+ Series slot
+1
+2
+3
+4
+5
+6
+7
+8
+Dark
+#22D3EE
+cyan
+#A78BFA
+violet
+#F59E0B
+amber
+#34D399
+green
+#F472B6 pink
+#60A5FA blue
+#FB7185 rose
+#FACC15
+yellow
+Light
+#0891B2
+#7C3AED
+#D97706
+#059669
+#DB2777
+#2563EB
+#E11D48
+#CA8A04
+Series order is stable per entity: a client or interface keeps its colour across pages, assigned by hashing its id into the 8
+slots, with collision resolution per chart. rx is always slot 1 and tx slot 2. The 'other' bucket is always neutral grey.
+6.2 Typography
+ Role
+Family
+Size / line-height
+Weight
+Notes
+Display (page title)
+Inter, system-ui
+22/28 px
+700
+One per page
+Section / card title
+Inter
+13/18 px
+600
+Sentence case
+Body / table
+Inter
+13/20 px (compact 12/16)
+400
+font-variant-numeric:
+tabular-nums everywhere
+numbers align
+KPI value
+Inter
+22–28 px (wall 40 px)
+700
+Tabular numerals; unit in 60 %
+size
+Caption / meta
+Inter
+11/14 px
+400
+Muted colour
+Mono (IPs, MACs, commands,
+config)
+JetBrains Mono,
+ui-monospace
+12/18 px
+400/600
+Ligatures off; slashed zero
+vyview · VyOS View-Only Dashboard — Design Brief
+6  Visual design system
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 25
+
+
+===== Page 26 =====
+Fonts are self-hosted WOFF2 subsets (Latin + common symbols). A no-webfont build variant uses system-ui and
+ui-monospace and saves about 70 KB (Section 9.10).
+6.3 Spacing, radius, elevation
+ Token
+Value
+Use
+space-1 … space-8
+4, 8, 12, 16, 20, 24, 32, 48 px
+4-px base grid; card padding 14–16 px; grid gutter 12–16
+px
+radius-sm / md / lg / pill
+6 / 10 / 14 / 999 px
+chips 999, cards 10, overlays 14
+elevation
+border only (dark); 0 1px 2px rgba(15,23,42,.06)
+(light)
+No heavy shadows; overlays use a backdrop dim
+row height
+comfortable 40 px, compact 30 px, wall 48 px
+via --row-h
+6.4 Grid and breakpoints
+ Breakpoint
+Width
+Grid
+Shell
+Typical card spans
+Phone
+< 640 px
+4 columns, 12 px gutter
+Bottom nav, top bar collapses to
+title + search icon
+All cards full-width; KPIs 3-up mini cards
+Tablet
+640–1023 px
+8 columns, 16 px
+Icon rail (64 px)
+KPI 4-up; charts full; tables with fewer
+columns
+Desktop
+1024–1919 px
+12 columns, 16 px
+Full rail (232 px)
+Status 4 + hero 8; KPI 7-up; tables 6+6
+Wall / NOC
+≥ 1920 px or
+?kiosk=1
+12 columns, 24 px
+Rail hidden; large type scale
+Hero 12; KPI 6-up at 40 px values
+6.5 Card anatomy
+  Header: icon (Font Awesome, 14 px, muted) · title · optional status dot · source chip right-aligned · overflow menu
+(export, copy link, view as table).
+ Value block (KPI cards): primary value with unit, delta vs previous period (up/down arrow with semantic colour only
+where direction has meaning), sub-label.
+ Body: chart, table or list. Charts have no titles of their own; the card title is the chart title.
+ Status edge: 3-px left bar in the status colour when the card represents a health state.
+ Footer (optional): 'updated 2 s ago', stale badge, pagination.
+6.6 Tables
+  Sticky header; zebra striping at 4 % contrast; row hover; selected row uses an accent left bar and a tinted background.
+ Virtual scrolling for conntrack and lease tables (10k–100k rows): fixed row height, a window of visible rows + 10
+overscan, and the scroll position mapped to an offset signal. The server returns only the visible slice (offset, limit)
+for sets above 2,000 rows. Below that, the full set is sent once and filtered client-side.
+ Column chooser (persisted per table in localStorage), resizable columns, right-aligned numerics with tabular
+numerals.
+ IPs, MACs, keys, commands and paths in monospace; click-to-copy with a toast; long values truncated in the middle
+(2001:db8:4f2a…::23) with the full value on hover.
+ Structured filter chips (proto = tcp, src ∈ 192.168.10.0/24) parsed and validated server-side; text search as a
+fallback.
+vyview · VyOS View-Only Dashboard — Design Brief
+6  Visual design system
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 26
+
+
+===== Page 27 =====
+6.7 Number and unit formatting
+ Quantity
+Format
+Examples
+Network rates
+bits per second, SI (k=1000), 3 significant digits
+742 Mb/s · 9.81 Gb/s · 812 kb/s
+Volumes (traffic totals)
+bytes, SI by default (GB); IEC (GiB) toggle in settings
+41.2 GB · 2.01 TB
+Memory / storage
+bytes, IEC (GiB/MiB), as Linux reports them
+1.9 GiB of 7.8 GiB
+Packet rates
+pps with k/M
+68.2 kpps
+Latency
+ms with 1 decimal below 100 ms; µs below 1 ms
+8.4 ms · 312 µs
+Percentages
+0 decimals ≥ 10 %, 1 decimal < 10 %
+93 % · 4.7 %
+Counters
+Thin-space grouping; compact form in KPIs
+9 811 204 551 · 9.81 G
+Time
+Relative ('38 s ago', '3d 04h') with absolute ISO-8601 local time
+on hover; 24-hour clock; timezone from the router with a
+browser-local toggle
+38 s · 2026-11-16 18:41:07 CET
+Optical power
+dBm with 2 decimals; mW on hover
+-5.86 dBm
+6.8 Iconography (Font Awesome Free)
+ Concept
+Icon (FA 6/7 Free, solid unless noted)
+Concept
+Icon
+Overview
+fa-house / fa-gauge-high
+Interfaces
+fa-network-wired
+Traffic & clients
+fa-users, fa-chart-area
+Routing
+fa-route
+Firewall & NAT
+fa-shield-halved
+VPN
+fa-lock, fa-key
+Services
+fa-server
+QoS
+fa-sliders
+Dataplane / offload
+fa-microchip
+System
+fa-gauge-high,
+fa-temperature-half,
+fa-hard-drive
+Configuration
+fa-code, fa-code-compare (diff)
+Logs & events
+fa-list, fa-scroll
+Health & alerts
+fa-bell, fa-triangle-exclamation
+Diagnostics
+fa-stethoscope, fa-wave-square
+Topology
+fa-diagram-project
+Search / palette
+fa-magnifying-glass
+Time range
+fa-clock (regular)
+Live / pause
+fa-circle-play / fa-circle-pause
+Copy
+fa-copy (regular)
+Export
+fa-download
+Pin view
+fa-thumbtack
+Theme
+fa-moon / fa-sun
+Filter
+fa-filter
+Settings
+fa-gear
+Wi-Fi / wireless
+fa-wifi
+Internet / WAN
+fa-globe
+Optics
+fa-plug / fa-lightbulb
+Status ok/warn/crit
+fa-circle-check /
+fa-triangle-exclamation /
+fa-circle-xmark
+The mockups in this document use a hand-drawn approximation of these glyphs because the icon font was not available in the rendering
+environment. The implementation uses the actual Font Awesome Free SVGs.
+6.9 Motion
+  Durations 150–200 ms with standard easing (cubic-bezier(.2,.0,.0,1)); no motion longer than 300 ms.
+ Page and drawer transitions use the View Transitions API where supported. Datastar's useViewTransition option
+on datastar-patch-elements enables it per patch. Live 1-second patches never animate, to avoid visual noise.
+ Value changes in KPI cards get a 600 ms background flash at 8 % opacity. Rows inserted into lists slide in 4 px.
+ prefers-reduced-motion: reduce disables all transitions and flashes. Kiosk mode disables them by default.
+vyview · VyOS View-Only Dashboard — Design Brief
+6  Visual design system
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 27
+
+
+===== Page 28 =====
+7 Modern dashboard features — behaviour and
+implementation
+Each feature lists its user-facing behaviour and the implementation approach within the Datastar + Go architecture. The
+guiding implementation rule is that the server owns data and HTML, and the client owns only ephemeral view state
+(cursor position, palette open, theme), held in Datastar signals or tiny custom elements.
+ #
+Feature
+Behaviour
+Implementation
+7.1
+Command palette
+(Ctrl/Cmd-K)
+Overlay with fuzzy search across pages, entities and
+commands; grouped results; arrow keys and Enter; Tab
+cycles type filters; recent items.
+<dialog> toggled by data-on:keydown__window and a
+$_palette signal; the query is debounced
+(__debounce.120ms) and sent via @get('/search'); the
+server patches #palette-results. Index built in memory
+(Section 7.2).
+7.2
+Global search across
+config and state
+Typing an IP shows its DHCP lease, ARP/NDP entry,
+conntrack flows, matching firewall rules (evaluated
+against the tuple), routes (longest match) and config
+references.
+In-memory inverted index keyed by IP/prefix (radix tree),
+MAC, hostname, rule id and config path; rebuilt incrementally
+on collector change, debounced 5 s. Rule matching uses a
+simplified evaluator over parsed nft rules, labelled 'likely
+match'.
+7.3
+Synchronised crosshair
+and zoom
+Hovering one chart shows the cursor on all charts on the
+page; brushing zooms all.
+uPlot cursor.sync.key = page id; zoom events set
+$from/$to, which the server sees on the next request, and
+the URL updates.
+7.4
+Brush-to-zoom
+Drag on a chart to select; double-click to reset; 'back'
+restores the previous range.
+uPlot select hook → signals → @get stream re-open with the
+new range (server picks the tier).
+7.5
+Time-range picker
+Presets 5 m, 1 h, 24 h, 7 d, 30 d, 90 d, plus custom
+absolute; keyboard shortcuts 1–6.
+$range signal; the server maps range → tier (≤ 15 m: 1 s ring;
+≤ 48 h: 10 s; ≤ 14 d: 1 min; ≤ 90 d: 5 min; else 1 h) and caps
+points at ~1,500 per series by max-min-preserving
+downsampling (M4/LTTB).
+7.6
+Compare to previous
+period
+Dashed overlay of the prior window, delta % in legend.
+Server returns a second, time-shifted series; uPlot series with
+dash.
+7.7
+Event annotations
+Vertical markers for commits, reboots, link flaps,
+BGP/OSPF changes, alerts; hover for details; click →
+event.
+Event log query for the range sent as an annotations signal; a
+uPlot plugin draws markers and flags.
+7.8
+Live / pause with
+pending counter
+Pause freezes the DOM; the badge shows 'N updates
+pending'; resume applies the latest state.
+$live=false makes the server send only a counter patch to
+#pending. On resume, a full snapshot patch is sent.
+Replaying deltas is not required.
+7.9
+Sparklines
+Inline trends in KPI cards and table rows.
+Server-rendered inline SVG <polyline> (≈ 300 B each),
+patched as HTML; no JS.
+7.10
+Heatmaps
+Hour-of-week traffic, per-core CPU, CEETM queue
+depth, latency distribution.
+Small grids: server-rendered SVG <rect> grid (≤ 2,000 cells).
+Larger grids: lazy-loaded ECharts heatmap.
+7.11
+Sankey
+WAN/VPN ↔ segments flows for the range.
+Lazy-loaded ECharts sankey series (custom build); data via
+signals.
+7.12
+Stacked per-client area
+Top-N clients + other.
+uPlot with stacked series computed server-side (cumulative),
+legend toggles recompute on the server.
+7.13
+Anomaly bands
+Shaded band = rolling baseline ± kσ (same
+hour-of-week); points outside are highlighted.
+Server computes the baseline from 5 min/1 h tiers (median
+and MAD, robust); sends band arrays; uPlot band fill between
+two series.
+7.14
+Explain this metric
+'?' on every widget: what it means, how it is computed,
+the source command, typical ranges, and doc links.
+Static metadata registry compiled into the binary; tooltip
+rendered server-side.
+7.15
+Copy-as-CLI
+Copy the op-mode command for a widget, or the set
+commands for a config node or rule.
+Clipboard API via data-on:click="navigator.clipboa
+rd.writeText(el.dataset.cmd)"; toast.
+7.16
+Export CSV / PNG /
+JSON; shareable deep
+links
+From any chart or table; links capture range, filters and
+selection.
+CSV/JSON from GET /export/{widget}?… (same
+validation as pages); PNG via uPlot canvas toBlob; links
+built from signals.
+7.17
+Keyboard shortcuts
+g o overview, g i interfaces, g r routing, g f
+firewall, g v VPN, g s system, g c clients, / search, t
+theme, space pause, [ collapse rail, 1–6 range presets,
+? help sheet, Esc close.
+One data-on:keydown__window handler with a tiny
+sequence matcher; ignored while typing in inputs.
+7.18
+Saved views and pins
+Pin any deep link with a name; pins appear in the
+palette and on Overview.
+localStorage only; export/import JSON.
+vyview · VyOS View-Only Dashboard — Design Brief
+7  Modern dashboard features — behaviour and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 28
+
+
+===== Page 29 =====
+#
+Feature
+Behaviour
+Implementation
+7.19
+Kiosk / NOC mode
+?kiosk=1: chrome hidden, large type, auto-rotate
+pages every N s, cursor hidden, auto-reload daily.
+Client timer drives navigation; each page opens its own
+stream. Read-only session via a long-lived kiosk token bound
+to the device (Section 11.4).
+7.20
+Mobile layout
+Bottom navigation, stacked cards, swipeable tabs,
+segmented range control.
+Same templates with responsive UnoCSS variants; tables
+switch to card lists below 640 px.
+7.21
+Installable PWA
+Add to home screen; app shell cached; offline page
+shows 'router unreachable'.
+Web app manifest + small service worker caching hashed
+assets only, never data. Network-first for HTML; SSE
+untouched.
+7.22
+Dark / light / auto
+Toggle in the top bar and with t; auto follows the OS.
+class="dark" on <html>; tokens as CSS variables;
+preference in localStorage; inline 300-byte head script
+prevents flash (allowed via CSP hash).
+7.23
+Density toggle
+Comfortable / compact / wall.
+data-density attribute switches CSS variables.
+7.24
+Skeleton loaders
+Only for never-collected data; geometry matches the
+final layout.
+Server renders skeleton blocks; replaced by the first patch.
+7.25
+Stale-data badges
+Amber badge when age > 2 × cadence; red when the
+source errors.
+Server includes data-updated timestamps; a 1-s client
+ticker computes ages locally, so no server traffic is needed for
+ageing.
+7.26
+SSE connection
+indicator and
+auto-reconnect
+Top-bar dot: connected / reconnecting (with attempt
+count) / offline.
+Datastar fetch retry options (retry, retryInterval,
+retryScaler, retryMaxWaitMs, retryMaxCount) on
+the stream @get; Datastar fetch lifecycle events update
+$_conn.
+7.27
+Syntax-highlighted diff
+Side-by-side and unified, with set-command mode,
+hunk navigation and masked secrets.
+Server-side diff (Myers on normalised config lines), rendered
+HTML with classes; no client diff library.
+7.28
+Topology map with live
+utilisation
+Auto-layout; colour and width by utilisation; pinned
+positions.
+Layout computed server-side (layered/Sugiyama) and
+rendered as SVG; utilisation patches update stroke
+attributes by element id (namespace svg).
+vyview · VyOS View-Only Dashboard — Design Brief
+7  Modern dashboard features — behaviour and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 29
+
+
+===== Page 30 =====
+8 High-fidelity mockups
+The following pages show the main screens at desktop size (1440 × 900 CSS px, dark theme) and two phone screens. They
+were rendered from code using the token values in Section 6. Numbered callouts are explained under each image. All
+data is illustrative. Public addresses use documentation ranges (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24,
+2001:db8::/32), and LAN addresses are RFC 1918. ASK2 metrics and sources are placeholders pending the ASK2 interface
+definition. Icons are approximations of Font Awesome glyphs.
+ #
+Screen
+Shows
+M1
+Overview
+Alert strip, WAN card, hero chart with annotations and anomaly band, KPI cards, top talkers, events
+M2
+Interfaces list
+Type chips, column chooser, live rates and sparklines
+M3
+Interface detail eth0
+KPIs, mirrored throughput, pps, errors, SFP+ DOM, addresses, driver counters
+M4
+Traffic & Clients
+Stacked per-client area, Sankey, client inventory
+M5
+Firewall rules
+Chains, rule counters and sparklines, zone matrix, rule drawer
+M6
+Conntrack / NAT
+Stats strip, filter chips, virtualised table, flow drawer
+M7
+Routing (BGP)
+Neighbour table with diagnosis hint, route table with longest-match, RIB churn
+M8
+WireGuard
+Interface cards, peers with handshake age, stale chart, IPsec card
+M9
+QoS / CAKE
+Tins table, latency under load, drops vs marks, backlog
+M10
+Dataplane (ASK2)
+HW vs SW flows, CEETM heatmap, BMan gauges, softirq, Suricata shunt
+M11
+System
+Per-core CPU heatmap, memory, temperatures, flash wear, services, images
+M12
+Configuration
+Tree, side-by-side diff with masked secrets, commit history, explain
+M13
+Logs & events
+Severity histogram, filtered live tail (paused), event timeline
+M14
+Command palette
+Search for an IP across state and config
+M15
+Mobile
+Overview and interface detail in portrait
+M16
+Topology
+Auto-drawn map with link utilisation and link drawer
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 30
+
+
+===== Page 31 =====
+M1 — Overview (home)
+Overview at 1440 × 900, dark theme, 24 h range. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Alert strip appears only when warn/crit checks are active; it links to Health
+& Alerts.
+2  WAN card: state, public IPv4, delegated IPv6 prefix, gateway RTT/loss and
+failover standby. Source chip show interfaces ethernet eth0.
+3  Event annotations (commit, link flap, BGP) are drawn on the hero chart and
+shared with all charts in the range.
+4  Synced crosshair tooltip with the anomaly band (baseline range) for the
+hovered time.
+5  KPI cards with range-aware sparklines; the left edge shows status (VPN
+peers in warn). Offload hit ratio comes from the ASK2 module.
+6  Recent events timeline from the event detector; each item links to Logs at
+that time.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 31
+
+
+===== Page 32 =====
+M2 — Interfaces list
+Interfaces list with live 10 s rates. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Type filter chips with counts; multi-select is reflected in the URL.
+2  Column chooser (persisted per browser) and free-text filter over name,
+description and address.
+3  1-hour sparklines per interface, coloured by the interface's stable series
+colour.
+4  Error/drop deltas highlighted in amber when non-zero for the range;
+no-carrier in red.
+5  Source footer lists every command used on the page and the refresh
+semantics.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 32
+
+
+===== Page 33 =====
+M3 — Interface detail (eth0, SFP+ WAN)
+eth0 detail, Overview tab, 6 h range. The reference build maps eth0 to an SFP+ cage connected to the ONT. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Secondary tabs: Overview, Counters, Optics (DOM), Addresses, Queues,
+Config.
+2  Throughput with rx above and tx below the axis; the link-flap annotation
+aligns with the error spike.
+3  Errors & drops from ethtool -S mapped to generic names.
+4  SFP+ DOM values with alarm/warning windows (shaded) and the current
+value marker.
+5  Non-zero driver counters with Δ over the range; FMan/BMan counters such
+as bp_count are visible here.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 33
+
+
+===== Page 34 =====
+M4 — Traffic & Clients
+Per-client usage over 24 h and client inventory. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Stacked per-client area (top 6 + other) with a crosshair listing every series
+value.
+2  Flow map: Sankey of bytes from WAN/VPN sources to LAN segments over
+the range.
+3  Identity source column shows how the client was identified (DHCP lease,
+static mapping, LLDP, NDP only).
+4  Privacy-randomised MACs are flagged and not used for long-term identity.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 34
+
+
+===== Page 35 =====
+M5 — Firewall rules and zone matrix
+ipv4 forward filter with counters for the last 24 h. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Chains and named rulesets with default action; groups below.
+2  Per-rule 24 h hit sparkline; 'hide 0-hit rules' helps find dead rules.
+3  Match column renders the rule in nft-like shorthand; full set-commands are
+in the drawer.
+4  Zone-policy matrix: from-zone × to-zone with default action and exception
+count; a cell opens the filtered rules.
+5  Rule drawer: exact set commands (copyable), top sources from the firewall
+log, link to log hits.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 35
+
+
+===== Page 36 =====
+M6 — Conntrack and NAT translations
+Live connection table, refreshed every 5 s while open. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Offloaded flow count (flowtable/ASK2) next to the conntrack totals.
+2  Structured filter chips are validated server-side; free text is a fallback.
+3  Virtualised table: only visible rows are rendered; the server sends the slice
+for large sets.
+4  Path column shows HW (offloaded) vs SW for each flow.
+5  Flow drawer joins the flow to client, firewall rule, route and QoS tin. No kill
+or flush action exists.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 36
+
+
+===== Page 37 =====
+M7 — Routing: BGP and RIB
+BGP tab with route table, 7-day range. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Neighbour state pills with uptime and prefix counts; the BFD column shows
+the linked session.
+2  'why?' explains a non-Established state from the last notification/error.
+3  Longest-match lookup and protocol filter chips (K/C/S/O/B).
+4  RIB size and update churn with neighbour-event annotations.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 37
+
+
+===== Page 38 =====
+M8 — VPN: WireGuard peers
+WireGuard interfaces and peers, 24 h range. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  ASK2 WireGuard acceleration status per interface (module-provided;
+hidden on stock builds).
+2  Handshake age is coloured by threshold: warn > 3 min when traffic is
+expected.
+3  Only public keys are shown, shortened; private keys are never read by
+vyview.
+4  Handshake-age chart with the 3-minute threshold line and the moment the
+peer went stale.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 38
+
+
+===== Page 39 =====
+M9 — QoS: CAKE on eth0 egress
+CAKE diffserv4 shaper statistics, 1 h range. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Bufferbloat grade from the latest scheduled latency-under-load probe.
+2  Per-tin table from tc -j -s qdisc CAKE xstats, including marks vs drops.
+3  Latency under load: last probe vs a reference run with the shaper disabled.
+4  Backlog per tin, stacked.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 39
+
+
+===== Page 40 =====
+M10 — Dataplane: ASK2 hardware offload (optional module)
+Hardware offload view for the LS1046A DPAA1 dataplane. Every source chip marked 'illustrative' is a placeholder to be defined by ASK2. All values are illustrative; public addresses are documentation ranges (RFC 5737
+/ RFC 3849).
+ 1  Module banner: detected adapter, features, and the graceful-degradation
+statement for stock x86 VyOS.
+2  Flows on the hardware vs software path; the annotation marks the offload
+table filling (software fallback burst).
+3  CEETM class queue depth heatmap (16 queues × 60 min); hot rows identify
+persistently loaded classes.
+4  BMan buffer pool free buffers vs 512 capacity; bp0 at 92 free is critical (pool
+depletion risk).
+5  Suricata verdict breakdown with the share of inspected flows shunted back
+to hardware.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 40
+
+
+===== Page 41 =====
+M11 — System
+Host health and platform inventory, 7-day range. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Per-core CPU heatmap (day × hour, p95); the hot cell is a nightly job on core
+1.
+2  Storage and flash wear: eMMC life-time estimate, pre-EOL state and
+vyview's own data volumes and write rate.
+3  Installed images and boot history, with unclean shutdowns flagged.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 41
+
+
+===== Page 42 =====
+M12 — Configuration: tree, diff and history
+Diff between two revisions with secrets masked server-side. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Config tree with path filter; the selected node syncs with the diff and
+explain panels.
+2  Side-by-side diff (also unified and set-commands modes) with added,
+removed and changed lines.
+3  A changed secret is shown only as '•••••• (changed)'; its value never leaves
+the server.
+4  Explain panel: description, effective state, related rule and page; bundled
+docs work offline.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 42
+
+
+===== Page 43 =====
+M13 — Logs & events
+Journal live tail filtered by unit and severity, paused. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  Severity histogram (events per minute) with the commit annotation.
+2  Paused tail: the stream continues and the view is frozen for reading.
+3  '37 new' pending counter; clicking resumes and jumps to the newest entry.
+4  Error lines highlighted; units coloured; permalinks use journal cursors.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 43
+
+
+===== Page 44 =====
+M14 — Command palette with global search
+Ctrl/Cmd-K palette over the Overview, searching for an IP address. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  The query is matched against IP, MAC, hostname, rule, config path and page
+names.
+2  The top hit is the client identity (lease and MAC), opened with Enter.
+3  State hits: neighbour cache, conntrack flows and traffic totals, each with its
+source command.
+4  Config hits: matching firewall rule (likely match), static mapping and route
+lookup.
+5  Keyboard hints and search timing (in-memory index).
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 44
+
+
+===== Page 45 =====
+M15 — Mobile (portrait)
+Phone layouts at 390 × 844 CSS px. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  The sticky alert banner is tappable and opens Health.
+2  KPI grid collapses to 3 columns with mini sparklines.
+3  Bottom navigation with five destinations; 'More' opens the full section list.
+4  Range as a segmented control directly above the chart.
+5  Detail values become key/value rows with copy-on-tap.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 45
+
+
+===== Page 46 =====
+M16 — Topology map
+Auto-drawn L2/L3 topology with live link utilisation. All values are illustrative; public addresses are documentation ranges (RFC 5737 / RFC 3849).
+ 1  The router node shows platform and offload state.
+2  Link label and colour show utilisation band (69 % amber on the switch
+uplink).
+3  Tunnel peers drawn with dashed links; colour shows tunnel health.
+4  The LLDP-discovered lab node is in warn because its BGP session is Active.
+vyview · VyOS View-Only Dashboard — Design Brief
+8  High-fidelity mockups
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 46
+
+
+===== Page 47 =====
+9 Architecture and implementation
+9.1 Recommendation
+Build vyview as a single static Go binary that contains the collectors, the time-series store, the web server and all assets.
+It runs on the router as an unprivileged systemd service bound to the LAN or management VRF, and uses the official
+Datastar Go SDK (Go is the SDK reference implementation). Go fits this job well: static cross-compiles for arm64 and
+amd64, mature netlink, nftables, WireGuard and journald libraries, cheap goroutines for SSE fan-out, go:embed for
+assets, and a small, predictable memory footprint with GOMEMLIMIT.
+ Alternative
+Why not (for v1)
+Python (Flask/FastAPI) inside VyOS'
+Python environment
+Reuses vyos.opmode directly, but Python startup (~0.5–1 s per call on A72) and memory (~40–60 MB per
+process) do not fit the budgets. Also couples to VyOS internals and their upgrades.
+Grafana + Prometheus + exporters on
+the router
+Excellent for metrics, but heavyweight (hundreds of MB), not a navigable op-mode/config explorer, and
+writes heavily to flash. Kept as an optional external integration (Section 10.6).
+SPA (React/Vue) + JSON API
+More client JS (typically 200–500 KB), duplicated state logic, harder CSP. Datastar keeps the server
+authoritative with a ~11 KB client.
+Rust (axum)
+Viable and lean; the Datastar Rust SDK exists. Go chosen for the official SDK, faster iteration and library
+breadth (vishvananda/netlink, google/nftables, wgctrl, go-systemd).
+9.2 Component diagram and data path
+Figure 4 — Data path from collectors to patched DOM elements, with the side services (event detector, search index, embedded assets).
+Component
+Responsibility
+Key design points
+Scheduler
+Runs collectors at their cadence with jitter
+(±10 %) to avoid alignment spikes.
+Per-source concurrency limit 1; global limit of 4 concurrent execs; on-demand
+collectors are triggered by page subscriptions (for example conntrack only
+while a page needs it).
+Collectors
+Acquire raw data from one source.
+Typed Go interfaces: Collect(ctx) (Raw, error), Capabilities().
+Timeouts per source (100 ms netlink, 2 s vtysh, 5 s op-mode). Exponential
+backoff after errors (max 5 min).
+Parsers
+Turn raw output into typed structs.
+JSON-first; text parsers registered per VyOS release; every parser has golden
+tests and fuzzing.
+Normaliser
+Units, entity ids, joins, redaction.
+Canonical units (bits, bytes, seconds). Entity ids: iface:eth0,
+client:mac:…, peer:wg0:<pubkey>, rule:ipv4/forward/filter/120.
+State model
+Current snapshot of all entities with
+version numbers.
+Copy-on-write snapshots; change sets emitted per tick for the SSE hub and
+event detector.
+vyview · VyOS View-Only Dashboard — Design Brief
+9  Architecture and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 47
+
+
+===== Page 48 =====
+Component
+Responsibility
+Key design points
+Ring buffers
+1 s × 15 min for core series.
+Fixed arrays of float32, lock-free single writer.
+Rollup engine
+Aggregates to 10 s / 1 min / 5 min / 1 h
+with min/avg/max/p95.
+p95 via a t-digest or a fixed 64-bin log histogram per slot; counters converted
+to rates with wrap/reset detection.
+Store
+Persists rollups.
+Time-major slot files (Section 10) with batched 60 s writes; hot tier on tmpfs.
+Event detector
+Derives events and alerts.
+Edge-triggered rules on change sets; persisted event log (append-only, small).
+Search index
+IP/MAC/name/rule/config lookups.
+Radix tree for prefixes; maps for exact keys; rebuilt incrementally.
+SSE hub
+Fan-out of page-scoped updates.
+One stream per open page; subscriptions keyed by (page, entity, range,
+filters); coalescing and backpressure.
+Renderers
+HTML for full pages and fragments; signal
+payloads for charts.
+Go html/template or templ (typed, compiled templates); every patchable
+fragment has a stable id.
+HTTP layer
+Routing, auth, CSP, compression of
+non-SSE responses, static assets.
+Only GET/HEAD routes; SSE responses are uncompressed or flush-aware.
+9.3 Collector catalogue and mechanisms
+ Collector type
+Mechanism (preferred → fallback)
+Notes
+Link stats, addresses, routes,
+neighbours
+netlink via vishvananda/netlink /
+mdlayher/netlink → ip -j …
+No process spawn at 1 s; RTM_GETLINK dump of 12
+interfaces ≈ 0.25 ms.
+/proc and /sys readers
+Direct file reads with pre-allocated buffers
+/proc/stat, meminfo, loadavg, softirqs,
+interrupts, pressure/*,
+/sys/class/net/*/statistics, hwmon, thermal,
+mmc.
+nftables ruleset & counters
+netlink NFT via google/nftables (read-only list calls)
+→ nft -j list ruleset
+Needs CAP_NET_ADMIN; handled by the privileged
+helper (Section 11.3).
+conntrack
+CTNETLINK dump/stats via ti-mo/conntrack →
+conntrack -L -o extended / -S
+Needs CAP_NET_ADMIN; dumps only while a
+consumer needs them; accounting roll-up every 10 s.
+qdisc/class
+netlink RTM_GETQDISC/RTM_GETTCLASS with stats
+(florianl/go-tc) → tc -j -s qdisc
+CAKE xstats decoded.
+WireGuard
+wgctrl generic netlink → wg show all dump
+Reads public keys, endpoints, handshakes, counters;
+private key fields are dropped at the collector
+boundary.
+ethtool stats, link modes,
+module EEPROM
+ethtool netlink (mdlayher/ethtool) / ioctl → ethtool
+-S, ethtool -m
+DOM reads are slow (I2C), every 300 s.
+FRR
+vtysh -c '<show …> json' via allowlist
+One vtysh process per batch: multiple -c arguments
+in one exec to amortise startup.
+VyOS op-mode
+Structured output of vyos.opmode functions (raw/JSON
+mode) via allowlisted invocations → text op-mode
+output parsed
+Python start-up cost (~0.65 s on A72, estimated) limits
+this to slow cadences or on-demand use.
+journald
+sd-journal reader (coreos/go-systemd/sdjournal,
+cgo) or journalctl -o json -f (one long-lived
+process)
+Event-driven; cursor persisted in RAM only.
+Kea
+UNIX control socket JSON commands
+(lease4-get-all, stat-lease4-get,
+statistic-get-all)
+Read-only commands only; the socket client rejects
+any command not in the allowlist.
+Running config & history
+show configuration json on commit events;
+/config/archive read-only
+Commit detection via journal (commit messages) and
+inotify on the archive directory.
+DNS forwarder, chrony, LLDP,
+systemd
+rec_control get-all, chronyc -c …, lldpcli -f
+json …, D-Bus ListUnits
+Slow cadences.
+ASK2 adapter (optional)
+ask2ctl … --json or a stable sysfs/debugfs/netlink
+interface (to be defined by ASK2)
+Module declares capability; absent → module hidden.
+vyview · VyOS View-Only Dashboard — Design Brief
+9  Architecture and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 48
+
+
+===== Page 49 =====
+Execution allowlist
+Every external program is described by an allowlist entry: absolute path, argument template with typed placeholders,
+timeout, maximum output size, and parser. Placeholders accept only values from validated sets: {iface} must be a
+currently known interface name matching ^[a-z][a-z0-9.\-]{0,14}$, {rev} must be an integer within the commit
+archive range, {neighbor} must be a configured neighbour address. There is no shell; arguments are passed as an argv
+slice. Output is capped (for example 16 MB) and the process is killed at the timeout. Environment is minimal (LANG=C,
+fixed PATH).
+ Allowlist sketch (illustrative paths; verify per VyOS release)
+# /usr/share/vyview/allowlist.yaml (compiled into the binary; file is for review only)
+- id: frr.bgp.summary
+  argv: ["/usr/bin/vtysh", "-c", "show bgp vrf all summary json"]
+  timeout: 2s
+  max_output: 4MiB
+  parser: frr.bgp_summary.v1
+- id: ethtool.module
+  argv: ["/usr/sbin/ethtool", "-m", "{iface:known_ethernet}"]
+  timeout: 3s
+  parser: ethtool.sff8472.text.v1
+- id: opmode.dhcp.leases
+  argv: ["/usr/libexec/vyos/op_mode/dhcp.py", "show_server_leases", "--family", "inet"]   # exact
+      function/flags per release
+  timeout: 6s
+  parser: vyos.opmode.dhcp_leases.raw.v1
+- id: config.show.json
+  argv: ["/opt/vyatta/bin/vyatta-op-cmd-wrapper", "show", "configuration", "json"]       # path per release
+  timeout: 5s
+  parser: vyos.config.json.v1
+9.4 The VyOS HTTP API: optional, and never for writes
+VyOS exposes an HTTP API (set service https api …) with REST endpoints that are all POST with form fields data
+and key: /retrieve (ops showConfig with a path list where an empty list returns the whole config, returnValues,
+exists), /show (runs op-mode show commands and returns text), plus mutating endpoints /configure,
+/config-file, /image, /generate, /reset, /reboot and /poweroff. GET /info is the only unauthenticated
+endpoint. A GraphQL API also exists (introspection is off by default; JWT authentication is an option).
+A VyOS API key grants full access to the API. There is no read-only key or per-endpoint scope. Any component holding a key
+can reconfigure, reboot or reimage the router. vyview therefore does not need, store or use an API key in its default,
+on-box mode.
+On-box mode (default): vyview reads local sources directly (netlink, files, sockets, allowlisted read-only commands) and
+does not touch the API. Remote mode (optional, for running vyview off-box or for a future fleet view): vyview may call
+the API through a client wrapper that exposes only /retrieve with showConfig/returnValues/exists, /show with
+paths from the allowlist, and GET /info. The wrapper has no method that can construct any other endpoint (the URL
+set is a compile-time constant), and an outbound request filter rejects any other path as defence in depth. The key is
+stored in a root-owned file readable only by the helper, and the UI warns that the key is full-access. Calling /configure,
+/config-file, /reset, /reboot, /poweroff, /generate or /image is impossible by construction, and a unit test
+asserts that the string set of reachable paths contains only the allowed ones.
+9.5 Datastar integration patterns
+  First paint is plain HTML. Every page is fully server-rendered with current data, so it works without JS and paints fast.
+Datastar is loaded as a single self-hosted ES module.
+ One stream per open page. data-init="@get('/sse/interfaces', {retryMaxCount: 1000})" on the page
+container opens the stream. The request carries the page's non-private signals (range, filters, sort, selection) as the
+datastar query parameter.
+vyview · VyOS View-Only Dashboard — Design Brief
+9  Architecture and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 49
+
+
+===== Page 50 =====
+ Morph by id. The server sends datastar-patch-elements events whose HTML elements carry stable ids
+(#kpi-cpu, #row-eth0, #peer-<hash>). Datastar morphs them in place by id (the default mode), preserving focus
+and scroll.
+ Charts via signals. Chart data goes as datastar-patch-signals into underscore-prefixed (private) signals such as
+_chart.wan, which Datastar does not send back to the server on later requests. A <vy-chart> custom element
+observes its signal and calls uplot.setData (append-only for live ticks).
+ Patch only what changed. The hub compares the new render of each patchable fragment with the last one sent to
+that client (hash per id) and sends only the changed fragments. Charts receive appended points, not whole arrays,
+except on range change.
+ Modes beyond morph. append for log tails (with server-side trimming via remove of the oldest rows), inner for
+tables replaced wholesale, remove for vanished rows, namespace svg for topology and sparkline SVG patches.
+ Rocket (Datastar's web-component layer, a separate bundle) is not required. The few custom elements are plain Web
+Components to keep the dependency surface minimal.
+9.6 SSE stream lifecycle
+Figure 5 — SSE stream lifecycle: initial HTML, stream open with signals, element and signal patches, range change and re-subscription,
+pause, and reconnection with retry/backoff.
+Concern
+Design
+Subscription key
+(session, page, entity ids, range tier, filters hash). The hub de-duplicates identical computations across clients (two
+browsers on Overview share one render per tick).
+Cadence and coalescing
+Collectors may tick faster than a page needs. The hub coalesces per subscription to the page cadence (1 s live, 5 s for
+slower widgets), sending only the latest state.
+Backpressure
+Each client has a bounded queue (for example 64 events or 256 KB). On overflow, queued deltas are dropped and a full
+snapshot is scheduled for that client. A client stuck for > 30 s is disconnected and will reconnect.
+vyview · VyOS View-Only Dashboard — Design Brief
+9  Architecture and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 50
+
+
+===== Page 51 =====
+Concern
+Design
+Keep-alive
+SSE comment line every 15 s to keep NAT/proxies open; X-Accel-Buffering: no; Cache-Control: no-cache.
+Compression
+Compression middleware is bypassed for text/event-stream, because buffering compressors can break SSE flushing.
+Gzip with explicit flush per event is possible, but deltas are small (≈ 31.2 kbit/s on Overview), so streams stay
+uncompressed.
+Hidden tabs
+On visibilitychange the client may close the stream (configurable) and reopen it with a snapshot when visible.
+Limits
+Max streams per session (8) and globally (32); HTTP/2 over TLS avoids the 6-connections-per-host limit of HTTP/1.1.
+Reconnect
+Datastar fetch retry with retryInterval 1 s, retryScaler 2, retryMaxWaitMs 30 s; the server sends a full snapshot
+on every (re)connect, so no event ids or replay are needed.
+9.7 Chart strategy
+uPlot is the primary engine: about 50 KB minified, canvas-based, and designed for fast time series with many points. It
+supports cursor sync, selection, bands and plugins. Sparklines are server-rendered SVG. ECharts (custom modular build)
+is lazy-loaded only on pages that need Sankey, large heatmaps or graph layouts. D3 is not shipped; the topology layout is
+computed in Go and rendered as SVG.
+ Engine
+Size (min)
+Rendering
+Strengths
+Weaknesses
+Role in vyview
+uPlot
+~50 KB
+Canvas 2D
+Very fast time series, tiny, cursor
+sync, bands, low memory
+Time series only; plain
+styling; manual legends
+Primary for all time-series
+charts
+ECharts (modular)
+~300–400 KB for
+the needed
+modules
+Canvas/SVG
+Sankey, heatmap, graph, rich
+interaction
+Heavy; many options
+Lazy for Sankey, large
+heatmaps
+Chart.js
+~200 KB
+Canvas
+Familiar, broad chart types
+Slower with many points;
+plugins needed for sync
+Not used
+Observable Plot
+~150 KB + D3 deps
+SVG
+Concise grammar, good static
+charts
+SVG slows with dense live
+data; needs D3
+Not used
+Server-rendered
+SVG
+0 KB client
+SVG in HTML
+No JS, cacheable, morphable by id
+No interactivity beyond
+CSS/title
+Sparklines, small
+heatmaps, gauges,
+topology
+9.8 UnoCSS
+  Build-time only. The UnoCSS CLI scans templates/**/*.templ, *.html and assets/js/*.js and writes one
+app.css. There is no runtime engine in the browser, and the CLI runs only in the developer/CI build, never on the
+router.
+ Preset: the Wind preset (presetWind3, or presetWind4 when it is stable for the project's needs) for
+Tailwind-compatible utilities; presetIcons optionally with the Iconify Font Awesome collections.
+ Theme tokens as CSS variables (colors.surface = 'var(--surface)'), class-based dark mode (dark: variant
+on html.dark).
+ Shortcuts for repeated component patterns: card, card-title, chip, badge-ok|warn|crit|info|unknown,
+tbl, tbl-row, kpi, btn-ghost.
+ Safelist for classes generated dynamically on the server, such as status variants, to avoid purging them.
+ Output budget: < 35 KB raw, about 6 KB brotli (Section 9.10).
+9.9 Font Awesome
+  Self-host Font Awesome Free. Licence: icons CC BY 4.0, fonts SIL OFL 1.1, code MIT. Attribution goes in the About
+dialog and the NOTICE file.
+ Do not ship the full webfont or the JS kit. Subset only the ~48 icons used into an SVG sprite (<symbol
+id="fa-route">…) referenced with <svg><use href="/a/icons.<hash>.svg#fa-route"/></svg>, or inline
+the SVGs via UnoCSS presetIcons with @iconify-json/fa6-solid / fa6-regular. Either way the payload is
+vyview · VyOS View-Only Dashboard — Design Brief
+9  Architecture and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 51
+
+
+===== Page 52 =====
+about 8–9 KB brotli.
+ Icons are decorative (aria-hidden="true") unless they stand alone, in which case they get an aria-label.
+9.10 Assets, caching and payload budget
+All assets are embedded with go:embed, named by content hash (app.3f9c1e.css) and served with Cache-Control:
+public, max-age=31536000, immutable. Pre-compressed brotli and gzip variants are produced at build time and
+selected by Accept-Encoding, so no compression CPU is spent on the router. HTML pages get no-cache with an ETag.
+The budget below is computed from the asset sizes listed (estimates for the stated library versions; CI enforces it with a
+size check).
+ Asset
+Raw KB
+Brotli KB
+Loaded
+Note
+index HTML (Overview, server-rendered)
+58
+9.5
+initial
+first page incl. inline SVG sparklines
+datastar.js v1.0.x (self-hosted)
+31
+11.0
+initial
+single module, no deps
+app.css (UnoCSS build output)
+30
+6.0
+initial
+only classes found in templates
+icons.svg (FA Free subset, ~48 symbols)
+30
+8.5
+initial
+SVG <symbol> sprite
+uPlot.min.js + uPlot.min.css
+49
+19.5
+initial
+primary time-series engine
+app.js (custom elements: chart, palette, picker)
+22
+7.0
+initial
+vy-chart, vy-palette, vy-range
+Inter var, Latin subset (woff2)
+46
+46.0
+initial
+already compressed; optional
+JetBrains Mono, Latin subset (woff2)
+24
+24.0
+initial
+already compressed; optional
+manifest.webmanifest + icons
+6
+3.0
+initial
+PWA
+ECharts custom build (sankey, heatmap, graph)
+380
+118.0
+lazy
+Traffic, Topology, System heatmaps only
+service worker (sw.js)
+4
+1.6
+lazy
+registered after first paint
+Figure 6 — Initial payload for Overview: 134.5 KB brotli vs a 150 KB budget, or 64.5 KB with system fonts. On 1 GbE this transfers in ≈ 1.2
+ms; on a poor 20 Mb/s Wi-Fi link ≈ 55 ms. Lazy modules (ECharts) add 119.6 KB only on pages that need them.
+vyview · VyOS View-Only Dashboard — Design Brief
+9  Architecture and implementation
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 52
+
+
+===== Page 53 =====
+10 Time-series storage and retention
+History is what turns a status page into a diagnostic tool. The storage design has to give up to two years of history on an
+eMMC/SD-backed router without wearing out the flash or using much memory. The approach: RAM rings for live data, a
+tmpfs hot tier for the last 48 h, and compact flash tiers written in time-major blocks once per minute.
+10.1 Series inventory (reference router)
+Series counts below are for the reference configuration (12 interfaces, 4 cores, 50 tracked clients, 120 tracked firewall
+rules, 16 QoS classes, 12 WireGuard peers, the ASK2 module). Core series get every tier including 1 s and 10 s; extended
+series start at 1 min.
+ Series group
+Count
+Class
+Interfaces (12 ifaces x rx/tx bps, pps, err, drop)
+96
+core
+CPU per core (4 cores x user/sys/softirq/iowait) + total
+17
+core
+Memory (used, cached, avail, swap, slab, conntrack mem)
+6
+core
+Load average (1/5/15)
+3
+core
+Temperatures / fans (hwmon + thermal zones)
+6
+core
+Storage (use %, write B/s, read B/s, eMMC life est.)
+4
+core
+Conntrack (count, max, insert/s, drop/s)
+4
+core
+Latency probes (6 targets x rtt/loss/jitter)
+18
+core
+WAN health / failover (2 WANs x state/rtt)
+4
+core
+Per-client top-N (50 clients x rx/tx) + other
+102
+extended
+Firewall rule counters (120 rules x pkts/bytes)
+240
+extended
+QoS classes (16 x bytes/drops/backlog/marks)
+64
+extended
+WireGuard peers (12 x rx/tx/handshake age)
+36
+extended
+BGP/OSPF (4 neighbours x state/pfx) + RIB size v4/v6
+12
+extended
+DHCP pools, DNS cache/hit, NTP offset/jitter
+16
+extended
+ASK2 dataplane (offload, 16 CEETM q x 3, 4 BMan, 4 softirq)
+64
+extended
+Total
+692 (core 158, extended
+534)
+10.2 Tiers
+ Tier
+Step
+Span
+Location
+Series
+Points/series
+Total points
+Size MB
+Aggregates
+T0 live ring
+1 s
+15 min
+RAM (process)
+158
+900
+0.14 M
+0.5
+raw value (float32)
+T1 hot
+10 s
+48 h
+tmpfs (RAM)
+158
+17,280
+2.73 M
+41.7
+min/avg/max/p95 float32
+T2 warm
+60 s
+14 d
+flash
+692
+20,160
+13.95 M
+212.9
+min/avg/max/p95 float32
+T3 cool
+300 s
+90 d
+flash
+692
+25,920
+17.94 M
+273.7
+min/avg/max/p95 float32
+T4 cold
+3600 s
+2 y
+flash
+692
+17,520
+12.12 M
+185.0
+min/avg/max/p95 float32
+vyview · VyOS View-Only Dashboard — Design Brief
+10  Time-series storage and retention
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 53
+
+
+===== Page 54 =====
+Figure 7 — Retention tiers (computed). Flash holds 671.6 MB in the full profile, or 412.4 MB in a lean profile that keeps only avg+max for
+extended series. The tmpfs hot tier uses 41.7 MB of RAM; live rings use 0.5 MB inside the process.
+ Aggregates per slot: min, avg, max and p95 as float32 (16 bytes/point). Counters are stored as rates. Gauges store
+the slot's statistics. A slot also records a 'valid' bit derived from NaN when collection failed, so gaps are drawn as gaps.
+ Downsampling at query time: the server never sends more than about 1,500 points per series. It chooses the
+coarsest tier that still gives at least one point per 1–2 pixels and applies M4/min-max-preserving reduction.
+ Cardinality caps: clients top-50 by 24 h bytes plus an 'other' bucket; firewall rules capped at 120 (top by hits plus all
+rules the user pins); per-peer series capped at 32 peers; ethtool -S history only for pinned or well-known counters.
+Exceeding a cap is visible on the retention settings page.
+10.3 Storage engine options
+ Option
+Pros
+Cons
+Verdict
+Custom fixed-size RRD-style files,
+time-major slot blocks
+Fixed size (no growth or fragmentation); one
+contiguous append per tier per flush; trivially
+fast range reads; no compaction; simple
+crash recovery (per-block CRC).
+Custom code to maintain; schema changes
+need a migration (series added → new
+column file).
+Recommended
+SQLite (WAL) with tiered tables
+Familiar, SQL for ad-hoc queries, robust.
+B-tree page rewrites, WAL double-writes and
+index churn give high write amplification
+(estimate 1109 MB/day host writes for this
+inventory); VACUUM/deletes add more; cgo
+or a pure-Go port.
+Acceptable on SSD
+x86; not preferred on
+eMMC
+bbolt (B+tree KV)
+Pure Go, transactional.
+Copy-on-write pages: every commit rewrites
+a path of pages; the file grows and needs
+compaction.
+Not preferred
+Remote-write to Prometheus /
+VictoriaMetrics
+Offloads storage completely; great long-term
+analytics.
+Needs another box; the dashboard must still
+work standalone.
+Optional add-on
+(Section 10.6)
+10.4 Flash-wear budget
+Assumptions, all computed in the build script: 692 series; flush every 60 s; 16 bytes per point; 4 KiB pages; ext4
+ordered-mode metadata of about 2 blocks per flush; eMMC internal write amplification factor 3×. Time-major layout
+writes one 1-minute block (692 series × 16 B = 10.8 KB) per flush, plus a 5-minute block every 5 min and an hourly block
+each hour. A series-major layout dirties one page per series per flush, which is shown as the anti-pattern.
+ Layout / engine
+Payload
+MB/day
+Host writes
+MB/day
+Est. NAND
+MB/day
+GB/year
+(NAND)
+Share of a 16 GB
+eMMC's endurance
+over 10 y
+RRD-style, time-major blocks (recommended)
+18.5
+31.8
+95.4
+34.0
+0.71 %
+SQLite WAL, 60 s batched transactions
+—
+1,108.7
+3,326.1
+1,185.6
+24.69 %
+vyview · VyOS View-Only Dashboard — Design Brief
+10  Time-series storage and retention
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 54
+
+
+===== Page 55 =====
+Layout / engine
+Payload
+MB/day
+Host writes
+MB/day
+Est. NAND
+MB/day
+GB/year
+(NAND)
+Share of a 16 GB
+eMMC's endurance
+over 10 y
+Naive series-major file, 60 s flush
+—
+3,892.5
+11,677.5
+4,162.4
+86.67 %
+Figure 8 — Daily flash writes by storage strategy (computed, log scale). Endurance reference: a 16 GB MLC eMMC at ~3,000 P/E cycles ≈
+46.9 TB written. These are estimates; Section 12.4 describes how to measure the real numbers on the device.
+ The hot tier (10 s × 48 h) lives on tmpfs (/run/vyview) and is lost on reboot. This is deliberate: it is the most
+write-intensive tier, and after a reboot the 1-minute tier still covers the gap. Optionally, a compressed snapshot of
+the hot tier is written on clean shutdown (ExecStop).
+ fsync policy: fsync once per flush on the tier files (bounded loss ≤ 60 s on power cut). The event log is appended and
+fsynced per event batch (≤ 1 per 5 s).
+ Self-measurement: vyview reports its own write_bytes from /proc/self/io on the System page, so the estimate
+can be checked against reality.
+10.5 Persistence across reboots and image upgrades
+ Location
+Survives reboot
+Survives image upgrade
+Trade-offs
+/config/vyview/ (inside the persistent
+config partition)
+Yes
+Yes (VyOS carries
+/config across images)
+Simple, but /config is small on some installs, is included in
+config backups and archives, and mixes data with
+configuration. Keep only the lean profile here, if used at all.
+Dedicated data partition or LV (e.g.
+/var/lib/vyview on a separate eMMC
+partition)
+Yes
+Yes, if mounted by
+fstab/systemd mount
+defined in the image
+build or
+/config/scripts
+Recommended for the reference hardware: isolates wear
+and size, easy to wipe, does not bloat config backups.
+Image-local /var/lib/vyview (overlay
+upper dir of the running image)
+Yes
+No (new image starts
+empty)
+Acceptable for experimentation; history is lost on every
+upgrade.
+tmpfs only
+No
+No
+Zero wear; suitable for SD-card systems or 'live only' mode.
+10.6 Integration with Prometheus, Grafana and VictoriaMetrics
+VyOS can run Prometheus exporters (set service monitoring prometheus node-exporter … and
+frr-exporter …; the available exporters depend on the release). vyview can optionally (a) scrape these local exporters
+instead of duplicating some collectors, (b) expose its own /metrics endpoint (read-only, authenticated) for external
+Prometheus, and (c) remote-write rollups to VictoriaMetrics or Prometheus. None of these is required, and the
+dashboard always works standalone. When remote storage is configured, vyview can shorten local retention (for
+example keep 14 days locally).
+vyview · VyOS View-Only Dashboard — Design Brief
+10  Time-series storage and retention
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 55
+
+
+===== Page 56 =====
+11 Security model
+vyview runs on the device that protects the network, so a vulnerability in it is a vulnerability in the router. The model
+below combines least privilege, no write paths, strict input validation and server-side redaction.
+Figure 9 — Trust zones and boundaries. TB1: browser → vyview (all input untrusted). TB2: vyview → router OS (only allowlisted read-only
+operations, through the privileged helper where needed).
+11.1 STRIDE-lite threat table
+ Threat
+Example
+Mitigation
+Spoofing
+Attacker on the guest VLAN reaches the login
+page; stolen session cookie.
+Bind only to LAN/management VRF addresses; firewall input rule limited to
+admin hosts group; PAM/argon2id auth; Secure; HttpOnly;
+SameSite=Strict cookies; session rotation; optional mTLS.
+Tampering
+Forged request tries to change config or run
+a command.
+No write endpoints or write collectors exist; GET/SSE only; allowlisted
+executables with typed placeholders; signal schema validation.
+Repudiation
+Who looked at the config or logs?
+Audit log of logins, failures and config/diff views (who, when, from where)
+in the journal under its own identifier.
+Information
+disclosure
+Secrets in config; per-client browsing
+patterns; XSS exfiltration.
+Server-side redaction of secret paths; no reveal option; contextual
+escaping; strict CSP; per-client history opt-out; no third-party requests.
+Denial of service
+Many SSE streams; huge conntrack table;
+expensive searches.
+Per-session and global stream limits; on-demand collectors with timeouts;
+capped result sizes; rate limits per IP; MemoryMax/CPUQuota in systemd.
+Elevation of privilege
+Bug in the web process leads to root.
+Web process has no capabilities, NoNewPrivileges, seccomp filter;
+privileged helper exposes a fixed RPC set; no shell anywhere; static binary
+with minimal attack surface.
+11.2 Read-only guarantees
+ 1. No write endpoints: the HTTP mux is built from a declarative route table and a test asserts that every route is
+GET/HEAD.
+2. No mutating collectors: collectors implement only Collect(); netlink sockets are opened for dump requests only.
+The helper uses message types from a read-only allowlist (for example RTM_GET*, NFT_MSG_GET*,
+IPCTNL_MSG_CT_GET*) and rejects anything else before it reaches the kernel.
+3. Allowlisted executables only, no shell, typed placeholders validated against known sets.
+4. Validated identifiers: interface names, chain names, peer keys, revisions and neighbour addresses must exist in the
+current state model.
+vyview · VyOS View-Only Dashboard — Design Brief
+11  Security model
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 56
+
+
+===== Page 57 =====
+5. No VyOS API key in on-box mode; in remote mode only the read-only endpoint wrapper (Section 9.4).
+11.3 Privilege model
+Some reads need privileges: nftables and conntrack dumps, WireGuard device queries and some ethtool calls need
+CAP_NET_ADMIN, and journal access needs the systemd-journal group. CAP_NET_ADMIN is broad: a process holding
+it could also change the network. Three options compare as follows.
+ Option
+How
+Pros
+Cons
+A. Single process with ambient
+CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_ADMI
+N on the vyview unit.
+Simplest; no IPC.
+The internet-facing HTTP code
+holds a capability that can
+reconfigure networking; any RCE
+becomes network control.
+B. Split: unprivileged web +
+privileged read helper
+(recommended)
+Same binary, two units: vyview-web (no
+caps) and vyview-probe
+(CAP_NET_ADMIN only, no network
+listeners) talking over a UNIX socket with a
+fixed RPC set (DumpNft,
+DumpConntrack(filter), WGDevices,
+EthtoolModule(iface)).
+Web compromise does not grant
+network control; the helper's
+surface is tiny and easy to fuzz;
+capabilities are scoped per process.
+Slightly more code; IPC overhead
+(negligible at these rates).
+C. Narrow sudoers entries
+vyview ALL=(root) NOPASSWD:
+/usr/sbin/nft -j list ruleset, …
+with exact argv.
+No custom helper.
+Exec at every poll (CPU cost); sudo
+argument matching is easy to get
+wrong; root processes from the
+web path.
+systemd hardening sketch
+# /etc/systemd/system/vyview-web.service (excerpt)
+[Service]
+User=vyview
+Group=vyview
+SupplementaryGroups=systemd-journal vyattacfg-ro      # read-only group for /config/archive (to be created)
+ExecStart=/usr/bin/vyview web --config /etc/vyview/vyview.toml
+CapabilityBoundingSet=
+AmbientCapabilities=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/vyview /run/vyview
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+MemoryMax=96M
+CPUQuota=25%
+Environment=GOMEMLIMIT=40MiB GOMAXPROCS=2
+# /etc/systemd/system/vyview-probe.service (excerpt)
+[Service]
+User=vyview-probe
+ExecStart=/usr/bin/vyview probe --socket /run/vyview/probe.sock
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+RestrictAddressFamilies=AF_UNIX AF_NETLINK
+IPAddressDeny=any                                       # helper never talks IP
+11.4 Authentication options
+ Option
+Description
+When to use
+VyOS system login via PAM
+Authenticate against system login user … accounts; optional
+restriction to a group (e.g. users with operator level).
+Default for single-owner routers; no
+extra accounts.
+Local vyview users
+Separate user list with argon2id hashes (m=64 MiB, t=3, p=1, tuned for
+A72 to ≈ 150 ms).
+Family members who should see the
+dashboard but have no router login.
+mTLS
+Client certificates issued from VyOS PKI; optionally the only factor on
+the management VRF.
+Kiosk devices and the owner's
+machines.
+vyview · VyOS View-Only Dashboard — Design Brief
+11  Security model
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 57
+
+
+===== Page 58 =====
+Option
+Description
+When to use
+Forward-auth / OIDC via
+reverse proxy
+Trust X-Forwarded-User only from a configured proxy address (e.g.
+an SSO proxy).
+Homelabs with existing SSO.
+Kiosk tokens
+Long-lived, device-bound, view-only tokens limited to kiosk pages;
+revocable in config.
+Wall displays.
+11.5 Sessions, CSRF and request rules
+  Sessions: random 256-bit ids, server-side store in RAM, idle timeout 12 h, absolute 7 d, rotation on login.
+ Cookies: Secure; HttpOnly; SameSite=Strict; Path=/. Because no state-changing endpoints exist, CSRF has
+no target. Login uses POST with a CSRF token; it is the only POST, and logout is the other non-GET exception, both
+outside the data plane.
+ Every SSE/fragment request re-validates the session. Signals are parsed with a strict schema (enums for range, regex
+for ids, numeric bounds for offsets/limits) and unknown fields are rejected.
+ Rate limits: login 5/min per IP with exponential lockout; search 10/s per session; export 1/s per session; new streams
+10/min per session.
+11.6 Content Security Policy and Datastar
+Datastar evaluates the expressions in data-* attributes by compiling them into functions at runtime, which requires
+'unsafe-eval' in script-src. This is a real weakening: if an attacker can inject an attribute such as data-init into
+the page, it executes. The mitigation is to make injection impossible and contain the impact:
+  **Never reflect user input into data-* attribute values or attribute names.** All Datastar expressions are static
+strings in templates; dynamic values are passed as signals (JSON-encoded by the server) or escaped text, never
+concatenated into expressions. A template lint fails the build on any data-* attribute containing a template action.
+ Contextual auto-escaping (html/template/templ) for all text and attributes; sanitise log lines and hostnames as text
+only.
+ CSP: default-src 'none'; script-src 'self' 'unsafe-eval'; style-src 'self'; img-src 'self'
+data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self';
+base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'. No
+'unsafe-inline' for scripts; the tiny theme pre-paint script uses a hash source.
+ Additional headers: X-Content-Type-Options: nosniff, Referrer-Policy: no-referrer,
+Permissions-Policy denying all unused features, Cross-Origin-Opener-Policy: same-origin, HSTS on the
+TLS listener.
+ Track Datastar's CSP guidance across releases. If a CSP-friendly build without eval becomes available, adopt it and
+drop 'unsafe-eval'.
+11.7 Network exposure and TLS
+  Listen only on explicitly configured addresses (default: the LAN bridge address and/or management VRF). Never on
+WAN interfaces. Start-up refuses to bind to 0.0.0.0/:: unless a firewall check confirms that the input filter protects
+the port.
+ VRF: bind the socket to the VRF device (SO_BINDTODEVICE) or run under ip vrf exec mgmt via the unit.
+ TLS: certificate and key from VyOS PKI (pki certificate <name>); TLS 1.3 preferred, 1.2 allowed with AEAD
+suites; automatic reload on certificate change.
+vyview · VyOS View-Only Dashboard — Design Brief
+11  Security model
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 58
+
+
+===== Page 59 =====
+11.8 Secrets redaction
+Redaction happens on the server when the config is loaded, before indexing, rendering, search or diffing. Redacted
+values are replaced by a constant marker and a keyed hash (HMAC with a per-boot key), so the diff can show '(changed)'
+without revealing anything. There is deliberately no reveal option: the router CLI is the place to read secrets. The path
+list is maintained as data and covered by tests that load sample configs containing every secret type.
+ Config path pattern (redacted value)
+Secret type
+service https api keys id * key
+HTTP API key (full access)
+service https api graphql authentication secret-key
+GraphQL JWT secret
+vpn ipsec authentication psk * secret
+IPsec pre-shared keys
+vpn ipsec … rsa local-key / x509 private references
+IPsec private keys
+interfaces wireguard * private-key
+WireGuard private keys
+interfaces wireguard * peer * preshared-key
+WireGuard PSKs
+system login user * authentication encrypted-password,
+plaintext-password
+Login password hashes
+system login user * authentication public-keys * key
+SSH public keys (hidden as a privacy/attack-surface
+measure)
+system login radius server * key, system login tacacs server * key
+AAA shared secrets
+pki * private key, pki key-pair * private key, pki openvpn
+shared-secret *
+PKI private keys, OpenVPN static keys
+protocols bgp neighbor * password, protocols bgp peer-group * password
+BGP TCP-MD5 passwords
+protocols ospf … authentication md5 key-id * md5-key, …
+plaintext-password
+OSPF authentication
+service snmp community *, service snmp v3 user * auth|privacy
+plaintext-password|encrypted-password
+SNMP communities and v3 secrets
+interfaces pppoe * authentication password
+PPPoE credentials
+interfaces wireless * security wpa passphrase
+Wi-Fi passphrases
+service dns dynamic name * password
+Dynamic DNS credentials
+interfaces openvpn * … auth files / tls keys
+OpenVPN secrets
+high-availability vrrp group * authentication password
+VRRP authentication
+container name * environment * value (matching /pass|secret|token|key/i)
+Container secrets (heuristic)
+11.9 Household privacy
+Per-client usage history reveals household behaviour: when people are home, which devices they use, and how much.
+The defaults are conservative: per-client history keeps top-N only, client detail retention is 30 days (shorter than
+interface history), DNS query logging is not collected, and a config switch privacy.per_client = off | aggregate
+| full controls it. The Settings page states what is collected. These choices should be discussed with the household.
+vyview · VyOS View-Only Dashboard — Design Brief
+11  Security model
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 59
+
+
+===== Page 60 =====
+12 Performance and resource budgets (LS1046A)
+Targets: < 3 % of one Cortex-A72 core while idle-streaming one Overview client, < 40 MB RSS, first paint < 300 ms on the
+LAN. The estimates below come from per-operation costs (measured on comparable A72 systems or conservatively
+assumed) multiplied by cadence. They are planning numbers to be replaced by measurements (Section 12.4).
+12.1 Collection cadence and CPU cost matrix
+ Source
+Method
+Cost per run
+(ms)
+Period (s)
+% of one core
+/proc/stat, /proc/loadavg, /proc/meminfo
+file read + parse
+0.12
+1
+0.012
+Link stats (12 ifaces)
+netlink RTM_GETLINK dump
+0.25
+1
+0.025
+/proc/softirqs, /proc/interrupts
+file read + parse
+0.3
+5
+0.006
+hwmon / thermal (8 files)
+sysfs read
+0.15
+5
+0.003
+Conntrack stats
+netlink CTNETLINK stats
+0.2
+5
+0.004
+nftables rule counters (120 rules)
+netlink NFT dump
+2.5
+5
+0.050
+WireGuard peers
+netlink (wgctrl)
+0.3
+5
+0.006
+qdisc / class stats
+netlink RTM_GETQDISC/TCLASS
+0.6
+5
+0.012
+ethtool -S counters (5 ports)
+ethtool netlink / ioctl
+0.8
+5
+0.016
+Per-client accounting (conntrack acct roll-up)
+netlink dump, 5k flows
+18.0
+10
+0.180
+FRR (vtysh -c ... json)
+exec allowlisted
+45.0
+30
+0.150
+Kea leases / pool stats
+UNIX control socket
+6.0
+30
+0.020
+DNS forwarding stats (pdns_control)
+exec / socket
+12.0
+30
+0.040
+chronyc -c sources/tracking
+exec allowlisted
+15.0
+60
+0.025
+VyOS op-mode (structured)
+exec python3 op-mode
+650.0
+300
+0.217
+SFP DOM (ethtool -m, 2 SFP+)
+ethtool module EEPROM (I2C)
+40.0
+300
+0.013
+eMMC EXT_CSD life
+ioctl / mmc extcsd
+30.0
+3600
+0.001
+Running config read
+file read on commit event
+25.0
+3600
+0.001
+journald follow
+sd-journal, event driven
+0.05
+1
+0.005
+Rollup + flush (60 s batch)
+in-process
+25.0
+60
+0.042
+SSE render + diff, Overview (1 client)
+template + diff
+1.6
+1
+0.160
+Total (idle-streaming, 1 client)
+0.99
+vyview · VyOS View-Only Dashboard — Design Brief
+12  Performance and resource budgets (LS1046A)
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 60
+
+
+===== Page 61 =====
+Figure 10 — Estimated CPU share by source. Total ≈ 0.99 % of one core against the 3 % budget. Opening the Conntrack page adds ≈ 3.0 %
+while open (50k-entry dump every 5 s).
+Never spawn processes at 1 s cadence. A VyOS op-mode Python invocation costs about 650 ms of CPU on an A72
+(estimate), so polling one every second would use roughly 65 % of a core by itself. 1-second data comes only from netlink
+and /proc; exec-based sources run at 30 s or slower, or on demand.
+12.2 Memory budget
+ Component
+MB (est.)
+Go runtime + binary text (static, embedded assets)
+14.00
+T0 live rings (158 core series x 900 x 4 B)
+0.50
+Current-state model (interfaces, routes summary, rules, peers)
+3.00
+Conntrack snapshot (50k entries x 160 B, only while page open)
+7.63
+Client inventory, leases, ARP/NDP (500 entries)
+0.50
+Template cache + render buffers
+2.00
+SSE clients (4 x 256 KB buffers + goroutines)
+1.00
+Rollup write buffers (60 s batch)
+0.36
+Journal tail ring (5k lines x 240 B)
+1.14
+Total RSS estimate
+30.1
+ GOMEMLIMIT=40MiB and GOMAXPROCS=2 keep the GC responsive and leave cores for the dataplane; MemoryMax=96M
+is the hard stop.
+ The conntrack snapshot exists only while a client views it. The server stores a compact struct-of-arrays (≈ 160 B/flow)
+and serves slices.
+ Goroutines: about 25 fixed (collectors, hub, store) plus 2 per SSE client, so fewer than 60 in normal use.
+12.3 Network and rendering
+  SSE delta volume on Overview ≈ 3900 B/s (≈ 31.2 kbit/s, 13.4 MB/hour), small enough to leave uncompressed.
+ Server render of a full Overview page: target < 15 ms on A72; fragment renders < 0.5 ms each; template output
+reused across clients with the same subscription key.
+ Browser: uPlot setData on append costs well under 1 ms per chart; morphing 10 small fragments per second is
+cheap; avoid re-rendering large tables each tick (row-level patches only).
+vyview · VyOS View-Only Dashboard — Design Brief
+12  Performance and resource budgets (LS1046A)
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 61
+
+
+===== Page 62 =====
+12.4 Measurement plan
+ What
+How
+Pass criterion
+CPU idle-streaming
+pidstat -u -p $(pidof vyview) 10 60 with 1 Overview client;
+also 4 clients across pages
+< 3 % (1 client), < 8 % (4 clients)
+Collector costs
+Built-in histograms per collector (exposed on System › vyview
+self-health and /metrics)
+p95 within 2× of the table above
+RSS and leaks
+VmRSS sampled every minute during a 72 h soak
+< 40 MB; slope < 1 MB/day
+Flash writes
+/proc/self/io write_bytes; /proc/diskstats for the data
+partition; EXT_CSD before/after a 7-day run
+< 50 MB/day host writes
+First paint
+Playwright on LAN: warm and cold cache, desktop and phone emulation
+< 300 ms warm, < 600 ms cold
+Dataplane impact
+iperf3/trex traffic at line rate with vyview off vs on, softirq and drops
+compared
+No measurable change in forwarding
+throughput or drops
+vyview · VyOS View-Only Dashboard — Design Brief
+12  Performance and resource budgets (LS1046A)
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 62
+
+
+===== Page 63 =====
+13 Packaging and deployment
+ Option
+How
+Pros
+Cons
+(a) Binary + systemd units in
+a custom image build
+Add a .deb (vyview, units, default config) to
+the image build in the owner's tree; units
+disabled by default, enabled by a boot script
+or (c).
+Native performance; full access to
+netlink/sockets via the helper;
+survives as part of the image.
+Needs a custom image (fine for the
+reference router, which already uses
+one); upgrades follow image
+cadence.
+(b) VyOS container
+(podman)
+set container name vyview image
+… with network host, read-only bind
+mounts (/run/vyview,
+/config/archive:ro, /run/kea,
+/var/log/journal:ro), capabilities only
+for the probe container.
+Works on stock VyOS without
+rebuilding; independent upgrades;
+easy rollback.
+Bind-mount and capability plumbing
+is fiddly; FRR/vtysh and op-mode
+scripts are not inside the container
+(needs host helper or socket access);
+container storage on flash.
+(c) Upstream config node
+service dashboard
+XML interface definition + conf-mode script
+that renders the vyview config and manages
+the units; op-mode show service
+dashboard.
+First-class VyOS UX (set service
+dashboard listen-address
+…), validation, commit integration,
+could benefit all VyOS users.
+Requires upstream acceptance and
+maintenance; Go binary packaging in
+VyOS build; review of security
+posture by maintainers.
+13.1 Proposed config node (option c)
+ CLI sketch
+set service dashboard listen-address 192.168.10.1
+set service dashboard listen-address fd00:10::1
+set service dashboard port 8443
+set service dashboard vrf mgmt
+set service dashboard certificate vyview-cert          # from pki certificate
+set service dashboard authentication mode pam          # pam | local | mtls | forward-auth
+set service dashboard authentication allow-group vyattaop
+set service dashboard retention profile lean           # full | lean | live-only
+set service dashboard retention path /var/lib/vyview
+set service dashboard privacy per-client aggregate     # off | aggregate | full
+set service dashboard modules ask2                     # optional modules
+XML interface definition sketch
+<!-- interface-definitions/service_dashboard.xml.in (sketch) -->
+<interfaceDefinition>
+  <node name="service">
+    <children>
+      <node name="dashboard" owner="${vyos_conf_scripts_dir}/service_dashboard.py">
+        <properties><help>View-only web dashboard (vyview)</help><priority>1001</priority></properties>
+        <children>
+          <leafNode name="listen-address">
+            <properties><help>Local IPv4/IPv6 address to listen on</help>
+              <completionHelp><script>${vyos_completion_dir}/list_local_ips.sh
+      --both</script></completionHelp>
+              <constraint><validator name="ip-address"/></constraint><multi/></properties>
+          </leafNode>
+          <leafNode name="port"><properties><help>TCP port</help>
+              <constraint><validator name="numeric" argument="--range 1-65535"/></constraint></properties>
+            <defaultValue>8443</defaultValue></leafNode>
+          #include <include/interface/vrf.xml.i>
+          <!-- certificate, authentication, retention, privacy, modules ... -->
+        </children>
+      </node>
+    </children>
+  </node>
+</interfaceDefinition>
+The conf-mode script (service_dashboard.py) follows the usual VyOS pattern: get_config() reads the node with
+defaults merged; verify() checks that listen addresses exist locally, are not on interfaces in a WAN zone, the certificate
+exists in PKI, and the port does not collide with service https; generate() renders /run/vyview/vyview.toml;
+apply() enables or restarts vyview-web and vyview-probe, or stops them when the node is deleted.
+vyview · VyOS View-Only Dashboard — Design Brief
+13  Packaging and deployment
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 63
+
+
+===== Page 64 =====
+13.2 Build, upgrade and persistence
+  Cross-compile: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags='-s -w' (and
+amd64). If sd-journal via cgo is used, either build with a cross toolchain or use the journalctl -o json -f fallback
+to stay static.
+ Asset pipeline (CI only): UnoCSS CLI → app.css; icon sprite subsetter; brotli/gzip pre-compression; content hashing;
+go:embed. The router needs no Node.js.
+ Reproducible builds with pinned Go and Node versions; SBOM (CycloneDX) and checksums published with each
+release.
+ Upgrades: the binary is part of the image (a) or the container tag (b). Data format versions are stored in the tier file
+headers; on upgrade, vyview migrates or starts new files and keeps old ones read-only until they expire.
+ Persistence: data path per Section 10.5; config in /config/vyview/vyview.toml (a, b) or generated from the
+VyOS config (c).
+vyview · VyOS View-Only Dashboard — Design Brief
+13  Packaging and deployment
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 64
+
+
+===== Page 65 =====
+14 Testing and quality
+ Area
+Approach
+Gate
+Parser correctness
+Golden-file tests: captured outputs of every allowlisted command and op-mode function from
+VyOS 1.4 LTS, 1.5 and rolling snapshots (x86 and the arm64 reference), stored under
+testdata/<release>/<command>.txt|json, with expected parsed structs.
+CI on every PR; new rolling
+captures weekly.
+Parser robustness
+Go native fuzzing of all text parsers and the signal decoder; corpus seeded from golden files.
+No panics; fuzz 10 min per
+target nightly.
+UI development
+Fake collectors that replay recorded sessions or synthesise scenarios (link flap, BGP down, pool
+full, conntrack 50k, offload table full) so pages can be built on a laptop.
+Scenario library is part of the
+repo.
+Visual regression
+Playwright screenshots of every page × theme × breakpoint with deterministic fake data;
+pixel-diff threshold.
+Review required on diff.
+Accessibility
+axe-core via Playwright on every page and theme; keyboard-only journey tests; contrast checks
+on tokens.
+0 serious/critical violations.
+Read-only guarantees
+Route-table test (GET/HEAD only); allowlist test (reachable exec/API paths are a subset of the
+allowlist); netlink message-type test in the helper; static check for os/exec usage outside the
+runner.
+Must pass; changes need
+security review.
+Security
+CSP header tests; template lint against dynamic data-* attributes; redaction tests with configs
+containing every secret type; dependency vulnerability scan (govulncheck).
+Must pass.
+Load
+50k conntrack entries and 200 clients synthetic, 4 browsers streaming across heavy pages;
+measure CPU, RSS, latency.
+Within Section 12 budgets ×2.
+Soak
+72 h SSE soak with reconnect storms (network flaps), tab hide/show, range changes every
+minute.
+No leaks; no stuck streams; RSS
+slope < 1 MB/day.
+Performance
+regression
+Benchmarks for renderers, rollups and the search index; payload size check in CI.
+No regression > 10 %; payload <
+150 KB.
+Upgrade
+Data-file migration tests across versions; image upgrade on the reference hardware.
+History preserved per the
+selected persistence option.
+vyview · VyOS View-Only Dashboard — Design Brief
+14  Testing and quality
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 65
+
+
+===== Page 66 =====
+15 Roadmap, risks and open decisions
+Figure 11 — Roadmap with effort ranges for one experienced developer (person-weeks). The total is about 24–36 person-weeks to v0.4.
+Release
+Scope
+Effort (pw)
+Exit criteria
+MVP v0.1
+Shell, auth (PAM), Overview, Interfaces (list + ethernet detail), System, Config viewer
+(tree/set/diff/history with redaction), Logs (tail), live rings + 10 s/1 min tiers, SSE hub,
+privileged helper.
+6–8
+Budgets met on LS1046A;
+golden tests for used
+commands; axe clean.
+v0.2
+Firewall/NAT with counters, Conntrack table (virtualised), DHCP/DNS/NTP services,
+VPN (WireGuard, IPsec), full retention tiers on flash, export CSV/JSON.
+5–7
+50k conntrack load test; flash
+writes measured < 50 MB/day.
+v0.3
+Routing/FRR (BGP, OSPF, BFD, RIB/FIB, VRFs), QoS/CAKE, Topology, command palette
+and global search, Health & Alerts with annotations, probes.
+5–7
+Palette search < 50 ms p95;
+topology correct on reference
+and lab configs.
+v0.4
+ASK2 Dataplane module (once interfaces are defined), Sankey/heatmaps (ECharts
+lazy), kiosk mode, PWA, mobile polish.
+4–6
+Graceful degradation verified on
+stock x86 VyOS.
+Later
+Optional notifications (webhook/ntfy/email) as a module; risk-gated diagnostics
+actions; read-only multi-router fleet view; remote-write integration.
+4–8
+Separate threat model per
+feature.
+15.1 Risk-gated diagnostics (v2 discussion)
+User-triggered ping/traceroute/DNS lookups are helpful, but they are the first step towards command execution. If
+added: a separate role that is off by default; fixed tools implemented in Go (no exec); targets restricted to a validated
+IP/hostname with a deny-list (no link-local, no management addresses unless allowed); per-session rate limits and
+concurrency 1; results stored as probe results with an audit record. Never expose free-form arguments.
+15.2 Risks and open decisions
+ Risk / decision
+Impact
+Mitigation / proposal
+Owner
+Op-mode structured output
+coverage gaps
+Some commands only have text
+output and formats vary by
+release.
+Prefer kernel/FRR/Kea sources; text parsers with golden tests
+per release; contribute raw/JSON output upstream where
+missing.
+Dev
+Datastar CSP (unsafe-eval)
+Weaker XSS containment.
+No dynamic data-* attributes; strict escaping; lint; track
+upstream CSP-friendly options.
+Dev/Sec
+Flash wear
+Device lifetime.
+Time-major RRD store, tmpfs hot tier, measured self-writes,
+lean profile.
+Arch
+FRR JSON schema drift
+Broken routing pages after FRR
+upgrades.
+Versioned parsers keyed by FRR version; golden tests; tolerant
+decoding of unknown fields.
+Dev
+Privilege model
+CAP_NET_ADMIN exposure.
+Split web/probe processes (Option B); netlink type allowlist;
+fuzz the RPC.
+Arch/Sec
+Upstream acceptance of service
+dashboard
+Packaging path and
+maintenance.
+Start with (a) in the custom image; propose (c) with a design doc
+after v0.2 is stable.
+Owner
+ASK2 interfaces undefined
+Dataplane module cannot be
+finalised.
+Define an adapter contract now (capabilities + JSON schema);
+stub with fake data; finalise with ASK2.
+Owner/Dev
+vyview · VyOS View-Only Dashboard — Design Brief
+15  Roadmap, risks and open decisions
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 66
+
+
+===== Page 67 =====
+Risk / decision
+Impact
+Mitigation / proposal
+Owner
+BMan pool size (512 buffers per
+pool)
+Buffer depletion under bursts.
+Surface fill level and depletion events prominently; alert
+thresholds; feed into ASK2 tuning.
+ASK2
+Per-client privacy
+Household trust.
+Conservative defaults, clear settings, aggregate mode.
+Owner
+Template engine choice
+(html/template vs templ)
+Developer ergonomics and type
+safety.
+Prototype both in MVP week 1; prefer templ if build tooling is
+acceptable.
+Dev
+vyview · VyOS View-Only Dashboard — Design Brief
+15  Roadmap, risks and open decisions
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 67
+
+
+===== Page 68 =====
+Appendix A — Data-source catalogue
+Complete mapping from entity/metric to source, parser, cadence, retention and consuming pages. Placeholders marked
+TBD belong to the ASK2 module.
+ Entity / metric
+Command or file (reference)
+Mechanism / parser
+Cadence
+Retention
+Pages
+Interface counters
+show interfaces · ip -j -s
+link ·
+/sys/class/net/*/statistics
+netlink RTM_GETLINK
+stats64
+1 s
+T0–T4
+Overview, Interfaces,
+Topology
+Interface addresses
+ip -j addr
+netlink RTM_GETADDR
+5 s / on
+event
+—
+Interfaces, Search
+Link mode / driver
+ethtool eth0, ethtool -i eth0
+ethtool netlink
+on event /
+start
+—
+Interfaces, System
+NIC driver counters
+ethtool -S eth0
+ethtool netlink stats
+5 s
+pinned counters
+T2–T4
+Interface detail, Dataplane
+SFP DOM
+ethtool -m eth0
+SFF-8472/8636 decoder
+300 s
+T2–T4
+Interface detail
+Neighbours (ARP/NDP)
+ip -j neigh
+netlink RTM_GETNEIGH
+10 s
+—
+Clients, Search
+Routes
+ip -j route show table all;
+show ip route
+netlink; vtysh JSON
+30 s
+counts T2–T4
+Routing, Search
+BGP
+vtysh -c 'show bgp vrf all
+summary json', show bgp
+neighbors json
+exec allowlist; FRR JSON
+30 s
+states/prefixes
+T2–T4
+Routing, Overview events
+OSPF/OSPFv3
+vtysh … 'show ip ospf
+neighbor json', 'show ipv6
+ospf6 neighbor json'
+FRR JSON
+30 s
+events
+Routing
+BFD
+vtysh -c 'show bfd peers
+json'
+FRR JSON
+5 s
+events
+Routing
+Firewall rules & counters
+nft -j list ruleset; show
+firewall
+helper: netlink NFT dump
+5 s
+120 rules T2–T4
+Firewall, Search
+NAT rules / translations
+show nat source rules, show
+nat source translations
+nft counters; CTNETLINK
+5 s
+rule hits T2–T4
+Firewall
+Conntrack stats
+conntrack -S, /proc/sys/net/n
+etfilter/nf_conntrack_*
+helper: CTNETLINK stats
+5 s
+T0–T4
+Overview, Firewall
+Conntrack table
+conntrack -L -o extended,
+/proc/net/nf_conntrack
+helper: CTNETLINK dump
+5 s while
+open
+—
+Conntrack, Clients
+Per-client accounting
+derived from conntrack acct
+aggregation
+10 s
+top-50 T2–T4
+Overview, Clients
+Flowtables / offload flags
+nft -j list flowtables
+helper: NFT
+10 s
+counts T2–T4
+Firewall, Dataplane
+qdisc / classes
+tc -j -s qdisc, tc -j -s class
+netlink TC
+5 s
+16 classes × 4
+T1–T4
+QoS
+WireGuard
+wg show all dump; show
+interfaces wireguard wg0
+summary
+helper: wgctrl
+5 s
+per-peer T2–T4
+VPN, Overview
+IPsec
+show vpn ike sa, show vpn
+ipsec sa
+VICI list-sas (read-only)
+10 s
+bytes T2–T4
+VPN
+OpenVPN
+show openvpn server
+status file
+30 s
+T2–T4
+VPN
+DHCP leases & pools
+show dhcp server leases; Kea
+lease4-get-all,
+stat-lease4-get
+Kea socket JSON
+30 s
+pool use T2–T4
+Services, Clients
+DNS forwarding
+show dns forwarding
+statistics; rec_control
+get-all
+exec allowlist
+30 s
+T2–T4
+Services
+NTP
+chronyc -c sources, -c
+tracking
+exec allowlist (CSV)
+60 s
+offset T2–T4
+Services, Health
+LLDP
+lldpcli -f json show
+neighbors details
+exec allowlist
+60 s
+events
+Services, Topology, Clients
+SSH sessions / users
+show users; ss -tnp
+utmp + netlink sock_diag
+30 s
+auth events
+Services
+WAN load-balance
+show wan-load-balance status
+op-mode text parser
+5 s
+state/RTT T2–T4
+Services, Overview
+Dynamic DNS
+show dns dynamic status
+op-mode text
+60 s
+events
+Services
+CPU
+/proc/stat
+file
+1 s
+T0–T4
+Overview, System
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix A — Data-source catalogue
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 68
+
+
+===== Page 69 =====
+Entity / metric
+Command or file (reference)
+Mechanism / parser
+Cadence
+Retention
+Pages
+Load / PSI
+/proc/loadavg,
+/proc/pressure/*
+file
+5 s
+T1–T4
+System
+Memory
+/proc/meminfo
+file
+5 s
+T1–T4
+Overview, System
+Sensors
+/sys/class/hwmon/*,
+/sys/class/thermal/*
+sysfs
+5 s
+T1–T4
+Overview, System
+Storage
+df (statfs), /proc/diskstats
+syscall/file
+60 s
+T2–T4
+System
+eMMC wear
+/sys/class/mmc_host/mmc0/mmc
+0:*/life_time, pre_eol_info;
+mmc extcsd read
+sysfs (preferred)
+1 h
+T4
+System, Health
+IRQ / softirq
+/proc/interrupts,
+/proc/softirqs
+file
+5 s
+T1–T4
+System, Dataplane
+Processes
+/proc/<pid>/stat|status
+file
+5 s while
+open
+—
+System
+systemd units
+systemctl list-units
+--output=json
+D-Bus ListUnits
+30 s
+events
+System, Health
+Version / hardware
+show version, show hardware
+cpu
+op-mode + /proc
+start
+—
+System
+Images / boots
+show system image; journalctl
+--list-boots -o json
+op-mode; journal
+start + 1 h
+events
+System
+Config
+show configuration json, show
+configuration commands
+op-mode on commit
+on commit
+archive
+Configuration, Search
+Commit history / diff
+show system commit, show
+system commit diff <n>;
+/config/archive
+file read
+on commit
+archive
+Configuration, events
+Logs
+show log; journalctl -o json
+-f
+sd-journal
+event
+journal
+Logs, events
+Probes
+built-in ICMP/UDP/DNS; scheduled speed
+test
+in-process
+10–60 s
+T1–T4; results 90
+d
+Diagnostics, QoS, Overview
+ASK2 flows (TBD)
+ask2ctl flows --json (illustrative)
+adapter
+5 s
+T1–T4
+Dataplane, Overview
+ASK2 CEETM (TBD)
+DPAA1 debugfs/sysfs; ethtool -S
+FMan (illustrative)
+adapter
+5 s
+T1–T4
+Dataplane, QoS
+ASK2 BMan pools (TBD)
+ethtool -S bp_count; BMan sysfs
+(illustrative)
+adapter
+1 s
+T0–T4
+Dataplane
+ASK2 WG accel (TBD)
+ask2ctl wg --json (illustrative)
+adapter
+5 s
+T1–T4
+Dataplane, VPN
+Suricata
+eve.json stats / unix-socket
+dump-counters; ask2ctl shunt
+(TBD)
+adapter
+10 s
+T2–T4
+Dataplane, Logs
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix A — Data-source catalogue
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 69
+
+
+===== Page 70 =====
+Appendix B — Datastar snippets (illustrative)
+Short sketches showing the intended patterns. Attribute syntax follows Datastar v1 (keyed attributes use a colon, for
+example data-on:click). Verify details against the Datastar version that is pinned.
+ HTML with data-signals, data-init and actions
+<!-- Page container: signals initialised from the URL, stream opened on init -->
+<main id="page"
+      data-signals="{range: '24h', live: true, filter: '', sel: '', _conn: 'connecting'}"
+      data-init="@get('/sse/overview', {retryInterval: 1000, retryScaler: 2, retryMaxWaitMs: 30000,
+      retryMaxCount: 1000})">
+  <!-- Time-range picker: changing the signal reopens the stream with new signals -->
+  <div class="seg" role="radiogroup" aria-label="Time range">
+    <button data-on:click="$range = '1h';  @get('/sse/overview')" data-class:active="$range == '1h'">1
+      h</button>
+    <button data-on:click="$range = '24h'; @get('/sse/overview')" data-class:active="$range == '24h'">24
+      h</button>
+    <button data-on:click="$range = '7d';  @get('/sse/overview')" data-class:active="$range == '7d'">7
+      d</button>
+  </div>
+  <!-- Live / pause -->
+  <button data-on:click="$live = !$live; @get('/sse/overview')" data-text="$live ? 'Live' :
+      'Paused'"></button>
+  <span id="pending" data-show="!$live"></span>
+  <!-- KPI card: patched by id from the server -->
+  <article id="kpi-cpu" class="card kpi">…server-rendered…</article>
+  <!-- Chart: private signal (_chart.wan) is not sent back to the server -->
+  <vy-chart id="chart-wan" data-attr:data-series="JSON.stringify($_chart.wan)"></vy-chart>
+</main>
+SSE events on the wire (text/event-stream)
+event: datastar-patch-elements
+data: elements <article id="kpi-cpu" class="card kpi"><h3>CPU</h3><p class="v">14 %</p>…</article>
+data: elements <tr id="row-eth0">…</tr>
+event: datastar-patch-elements
+data: selector #log-tail
+data: mode append
+data: elements <li id="log-9f3a">18:41:07 WARN wireguard …</li>
+event: datastar-patch-signals
+data: signals {"_chart":{"wan":{"t":[1763314860],"rx":[742.1e6],"tx":[61.4e6],"append":true}}}
+event: datastar-patch-signals
+data: onlyIfMissing true
+data: signals {"filter":""}
+Go SSE handler sketch (function names per SDK version; verify)
+// Go handler sketch using the Datastar Go SDK (github.com/starfederation/datastar-go/datastar)
+type OverviewSignals struct {
+    Range  string `json:"range"`   // validated: 5m|1h|24h|7d|30d|90d
+    Live   bool   `json:"live"`
+    Filter string `json:"filter"`  // validated by schema
+}
+func (s *Server) sseOverview(w http.ResponseWriter, r *http.Request) {
+    var sig OverviewSignals
+    if err := datastar.ReadSignals(r, &sig); err != nil || !validRange(sig.Range) {
+        http.Error(w, "bad signals", http.StatusBadRequest); return
+    }
+    sse := datastar.NewSSE(w, r)                         // sets text/event-stream headers, flushes per
+      event
+    sub := s.hub.Subscribe(r.Context(), session(r), "overview", sig)
+    defer sub.Close()
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix B — Datastar snippets (illustrative)
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 70
+
+
+===== Page 71 =====
+Go SSE handler sketch (function names per SDK version; verify) (cont.)
+    // full snapshot on (re)connect
+    sse.PatchElements(s.render.OverviewKPIs(sub.Snapshot()))
+    sse.MarshalAndPatchSignals(map[string]any{"_chart": s.series.Window("wan", sig.Range)})
+    for {
+        select {
+        case <-r.Context().Done():
+            return
+        case d := <-sub.Deltas():                         // coalesced to page cadence
+            if !sig.Live { sse.PatchElements(pendingBadge(d.Count)); continue }
+            for _, frag := range d.ChangedFragments {      // only ids whose render hash changed
+                sse.PatchElements(frag.HTML)
+            }
+            if d.ChartAppend != nil {
+                sse.MarshalAndPatchSignals(map[string]any{"_chart": d.ChartAppend})
+            }
+        }
+    }
+}
+Chart custom element sketch
+// vy-chart: minimal custom element wrapping uPlot, fed by a Datastar signal attribute
+class VyChart extends HTMLElement {
+  static observedAttributes = ['data-series'];
+  connectedCallback() { this.u = new uPlot(this.opts(), [[]], this); }
+  attributeChangedCallback(_, __, v) {
+    const d = JSON.parse(v || 'null'); if (!d || !this.u) return;
+    if (d.append) { /* push points, trim to window */ this.appendPoints(d); }
+    else { this.u.setData([d.t, d.rx, d.tx]); }
+  }
+  opts() { return { width: this.clientWidth, height: 240, cursor: { sync: { key: 'page' } }, series: [{},
+      {label:'rx'}, {label:'tx'}] }; }
+}
+customElements.define('vy-chart', VyChart);
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix B — Datastar snippets (illustrative)
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 71
+
+
+===== Page 72 =====
+Appendix C — UnoCSS configuration sketch
+ uno.config.ts and tokens
+// uno.config.ts  (build-time only; output: assets/app.css)
+import { defineConfig, presetWind3, presetIcons, transformerVariantGroup } from 'unocss'
+export default defineConfig({
+  content: { filesystem: ['templates/**/*.templ', 'templates/**/*.html', 'assets/js/**/*.js'] },
+  presets: [
+    presetWind3({ dark: 'class' }),
+    presetIcons({ collections: { fa: () => import('@iconify-json/fa6-solid/icons.json').then(i =>
+      i.default) },
+                  extraProperties: { display: 'inline-block', 'vertical-align': '-0.125em' } }),
+  ],
+  transformers: [transformerVariantGroup()],
+  theme: {
+    colors: {
+      bg: 'var(--bg)', rail: 'var(--rail)', surface: 'var(--surface)', surface2: 'var(--surface-2)',
+      border: 'var(--border)', text: 'var(--text)', muted: 'var(--text-muted)',
+      accent: 'var(--accent)', ok: 'var(--ok)', warn: 'var(--warn)', crit: 'var(--crit)',
+      info: 'var(--info)', unknown: 'var(--unknown)',
+    },
+    fontFamily: { sans: 'Inter, system-ui, sans-serif', mono: '"JetBrains Mono", ui-monospace, monospace' },
+  },
+  shortcuts: {
+    'card': 'bg-surface border border-border rounded-[10px] p-4',
+    'card-title': 'text-[13px] font-600 text-text flex items-center gap-2',
+    'chip': 'font-mono text-[11px] px-2 py-0.5 rounded-full bg-surface2 border border-border text-muted',
+    'badge': 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-600',
+    'badge-ok': 'badge text-ok bg-ok/15 border border-ok/50',
+    'badge-warn': 'badge text-warn bg-warn/15 border border-warn/50',
+    'badge-crit': 'badge text-crit bg-crit/15 border border-crit/50',
+    'tbl': 'w-full text-[13px] tabular-nums [&_th]:(sticky top-0 bg-surface2 text-muted text-[11px]
+      uppercase)',
+    'kpi': 'card relative overflow-hidden [&_.v]:(text-[24px] font-700 tabular-nums)',
+  },
+  safelist: ['badge-ok', 'badge-warn', 'badge-crit', 'text-ok', 'text-warn', 'text-crit', 'text-info',
+      'text-unknown'],
+})
+/* tokens.css (hand-written, imported first) */
+:root      { --bg:#F7F9FC; --surface:#FFFFFF; --text:#0F172A; --accent:#0E7490; /* … */ }
+html.dark  { --bg:#0B1220; --surface:#111A2E; --text:#E6EDF7; --accent:#22D3EE; /* … */ }
+[data-density=compact] { --row-h:30px; } [data-density=wall] { --row-h:48px; font-size:125%; }
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix C — UnoCSS configuration sketch
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 72
+
+
+===== Page 73 =====
+Appendix D — Font Awesome icon map
+ UI element
+Icon id
+Style
+Sprite symbol
+Overview / Home
+house
+solid
+#fa-house
+Health & Alerts
+bell / triangle-exclamation
+solid
+#fa-bell,
+#fa-triangle-exclamation
+Interfaces
+network-wired
+solid
+#fa-network-wired
+Traffic & Clients
+users / chart-area
+solid
+#fa-users, #fa-chart-area
+Routing
+route
+solid
+#fa-route
+Firewall & NAT
+shield-halved
+solid
+#fa-shield-halved
+VPN
+lock / key
+solid
+#fa-lock, #fa-key
+QoS
+sliders
+solid
+#fa-sliders
+Topology
+diagram-project
+solid
+#fa-diagram-project
+Services
+server
+solid
+#fa-server
+System
+gauge-high / temperature-half / hard-drive / memory
+solid
+#fa-gauge-high …
+Dataplane (ASK2)
+microchip
+solid
+#fa-microchip
+Configuration / diff
+code / code-compare
+solid
+#fa-code, #fa-code-compare
+Logs & Events
+list / scroll
+solid
+#fa-list, #fa-scroll
+Diagnostics
+stethoscope / wave-square
+solid
+#fa-stethoscope
+Search / palette
+magnifying-glass
+solid
+#fa-magnifying-glass
+Time range
+clock
+regular
+#far-clock
+Live / pause
+circle-play / circle-pause
+solid
+#fa-circle-play,
+#fa-circle-pause
+Copy
+copy
+regular
+#far-copy
+Export
+download
+solid
+#fa-download
+Pin
+thumbtack
+solid
+#fa-thumbtack
+Theme
+moon / sun
+solid
+#fa-moon, #fa-sun
+Settings
+gear
+solid
+#fa-gear
+Filter
+filter
+solid
+#fa-filter
+Internet / WAN
+globe
+solid
+#fa-globe
+Wireless
+wifi
+solid
+#fa-wifi
+Optics / module
+plug
+solid
+#fa-plug
+Status ok / warn / crit / info /
+unknown
+circle-check / triangle-exclamation / circle-xmark / circle-info
+/ circle-question
+solid
+#fa-circle-check …
+External doc link
+arrow-up-right-from-square
+solid
+#fa-arrow-up-right-from-s
+quare
+Expand / fullscreen
+expand
+solid
+#fa-expand
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix D — Font Awesome icon map
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 73
+
+
+===== Page 74 =====
+Appendix E — URL and route map
+ Route
+Method
+Purpose
+/
+GET
+Overview (full page)
+/health
+GET
+Health & Alerts
+/interfaces
+GET
+Interface list (?type=&q=&sort=)
+/interfaces/{name}
+GET
+Interface detail (?tab=overview|counters|optics
+|addresses|queues|config&range=)
+/clients, /clients/{id}
+GET
+Traffic & Clients; client detail
+/conntrack
+GET
+Conntrack table (?f=…&offset=&limit=)
+/routing, /routing/bgp, /routing/bgp/{neighbor},
+/routing/ospf, /routing/rib?afi=ipv4&vrf=
+GET
+Routing views
+/firewall, /firewall/{family}/{hook}/{chain},
+/firewall/zones, /firewall/groups, /nat
+GET
+Firewall & NAT views
+/vpn/wireguard, /vpn/wireguard/{iface}, /vpn/ipsec,
+/vpn/openvpn
+GET
+VPN views
+/services/{dhcp|dns|ntp|ssh|lldp|mdns|ra|ddns|upnp|snmp|w
+anlb}
+GET
+Service views
+/qos, /qos/{policy}
+GET
+QoS views
+/dataplane,
+/dataplane/{flows|ceetm|bman|softirq|wg|suricata}
+GET
+ASK2 module (if present)
+/system, /system/{processes|units|kernel|images|storage}
+GET
+System views
+/config?path=&view=tree|set|json
+GET
+Configuration browser
+/config/history,
+/config?rev=41&diff=40&mode=side|unified|set
+GET
+Commit history and diff
+/logs?unit=&sev=&q=&cursor=, /events?from=&to=
+GET
+Logs and event timeline
+/diagnostics
+GET
+Probe results
+/topology
+GET
+Topology map
+/settings
+GET
+Local settings page
+/search?q=
+GET
+Palette results fragment
+/export/{widget}?format=csv|json&…
+GET
+Exports
+/sse/{page}
+GET (SSE)
+Live stream for a page; signals via datastar query
+parameter
+/a/{hash}.{ext}
+GET
+Immutable static assets
+/login, /logout
+GET/POST
+Authentication (the only POST routes, outside the data
+plane)
+/metrics
+GET
+Optional Prometheus metrics (authenticated)
+/healthz
+GET
+Liveness (no data)
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix E — URL and route map
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 74
+
+
+===== Page 75 =====
+Appendix F — Glossary
+ Term
+Meaning
+AQM
+Active Queue Management: dropping or marking packets early to control queueing delay (e.g. CoDel, CAKE).
+ASK2
+The owner's hardware-offload work for VyOS on NXP DPAA1 (flow offload, CEETM QoS, WireGuard acceleration,
+ACL/DDoS drop, Suricata shunt).
+BFD
+Bidirectional Forwarding Detection: fast liveness detection between routing neighbours.
+BMan / QMan / FMan
+NXP DPAA1 Buffer Manager (buffer pools), Queue Manager (frame queues, portals, congestion) and Frame Manager
+(packet parsing, classification, MACs).
+Bufferbloat
+Excess latency caused by oversized, unmanaged buffers under load.
+CAKE
+Common Applications Kept Enhanced: a Linux qdisc combining shaping, flow isolation, AQM and DiffServ tins.
+CEETM
+Customer Edge Egress Traffic Management: DPAA1 hardware egress scheduling and shaping with class queues and
+committed/excess rates (CR/ER).
+Conntrack
+Linux connection-tracking table used by stateful firewalling and NAT.
+DOM
+Digital Optical Monitoring: SFP/SFP+ diagnostics (power, temperature, voltage, bias) per SFF-8472/8636.
+Flowtable
+nftables fast path that bypasses the classic forwarding path for established flows; may be hardware-offloaded.
+FIB / RIB
+Forwarding Information Base (kernel routes used to forward) / Routing Information Base (all routes known to the
+routing daemon).
+Morphing
+Updating the DOM by diffing new HTML against existing elements (by id) instead of replacing them, preserving focus
+and state.
+op-mode
+VyOS operational mode commands (show …), implemented largely by Python scripts in the vyos.opmode framework.
+p95
+95th percentile of samples within a rollup slot.
+PSI
+Pressure Stall Information: Linux metrics for CPU, memory and I/O contention.
+Rollup
+Aggregation of fine-grained samples into coarser time slots (min/avg/max/p95).
+Signals (Datastar)
+Reactive client-side state referenced as $name in data-* expressions; sent to the backend with requests unless
+underscore-prefixed (private).
+SSE
+Server-Sent Events: a one-way HTTP streaming protocol (text/event-stream) from server to browser.
+Tier
+A retention level with a fixed step and span.
+Time-major layout
+Storage layout where all series for one time slot are contiguous, minimising pages touched per write.
+VRF
+Virtual Routing and Forwarding: an isolated routing table and interface set.
+WAF (flash)
+Write amplification factor: ratio of NAND writes to host writes.
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix F — Glossary
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 75
+
+
+===== Page 76 =====
+Appendix G — References
+ Topic
+Reference
+Datastar documentation
+https://data-star.dev/docs
+Datastar source and SDKs
+https://github.com/starfederation/datastar
+VyOS HTTP API
+https://docs.vyos.io/en/rolling/automation/vyos-api.html
+VyOS HTTPS service configuration
+https://docs.vyos.io/en/rolling/configuration/service/https.html
+UnoCSS
+https://unocss.dev
+Font Awesome (Free licence: icons CC BY 4.0, fonts SIL OFL
+1.1, code MIT)
+https://fontawesome.com
+uPlot
+https://github.com/leeoniya/uPlot
+Apache ECharts
+https://echarts.apache.org
+Visual information-seeking mantra
+B. Shneiderman, 'The Eyes Have It: A Task by Data Type Taxonomy for Information
+Visualizations', IEEE VL 1996
+WCAG 2.2
+https://www.w3.org/TR/WCAG22/
+Documentation address ranges
+RFC 5737 (IPv4), RFC 3849 (IPv6)
+End of document. Version 0.1.0, 16 November 2026. Prepared for Miha Kralj. Numbers in Sections 9.10, 10 and 12 are computed by the
+document's build scripts from stated assumptions; replace them with measurements as the implementation progresses.
+vyview · VyOS View-Only Dashboard — Design Brief
+Appendix G — References
+v0.1.0 · 16 Nov 2026 · Prepared for Miha Kralj · mockup and ASK2 data are illustrative
+Page 76
