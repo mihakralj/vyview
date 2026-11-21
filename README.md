@@ -11,9 +11,9 @@ It is **read-only by construction**: there are no mutating HTTP endpoints, no wr
 | File on Router | Role |
 | --- | --- |
 | **1. `/usr/bin/vyview`** | Single static Go binary (`go:embed`ded HTML templates, UnoCSS, Font Awesome SVG sprite, Datastar ES module, uPlot, lazy ECharts, WOFF2 fonts, offline docs). Invoked as two hardened systemd units from the same binary: `vyview web` (unprivileged, zero capabilities) and `vyview probe` (`CAP_NET_ADMIN` read-only helper over a UNIX socket). |
-| **2. `/var/lib/vyview/vyview.ring`** | Single pre-allocated, fixed-size **multi-ring binary datastore** holding the series catalog, time-major rollup rings (1 min × 14 d, 5 min × 90 d, 1 h × 2 y), circular event/alert/probe ring, and an optional clean-shutdown snapshot of the in-RAM 10 s hot ring. |
+| **2. `/var/lib/vyview/vyview.ring`** | Single pre-allocated, fixed-size **multi-ring binary datastore** holding the series catalog, time-major rollup rings (`60 s × 14 d`, `5 min × 90 d`, `1 h × 2 y` — or compact `5 min × 7 d`, `1 h × 1 y`), circular event/alert/probe ring, and an optional clean-shutdown snapshot of the in-RAM `5 s` hot ring. |
 
-Live 1-second rings (`0.5 MB`) and the 10-second hot tier (`41.7 MB`) live strictly in RAM (`process` / `tmpfs`) to protect eMMC/SD flash endurance.
+Live `200 ms` (5 Hz) rings (`~1.5 MiB`, 60 fps interpolated in `<vy-chart>`) and the `5 s` hot tier (`tmpfs`) live strictly in RAM to protect eMMC/SD flash endurance while keeping live charts fluid.
 
 ## Core Technology Stack
 
