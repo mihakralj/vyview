@@ -8,19 +8,20 @@ Scheduler uses ±10% jitter, one concurrent run per source and four concurrent e
 
 | Source | Preferred mechanism / fallback |
 |---|---|
-| Link/address/routes/neighbors | netlink / `ip -j` |
-| System | direct `/proc`, `/sys` |
-| nft, conntrack | read-only netlink through privileged helper / `nft -j`, `conntrack` |
+| Link/address/routes/neighbors | netlink (`200 ms` `IFLA_STATS64` + event-driven `rtnetlink` multicast) / `ip -j` |
+| System & softnet | direct `/proc` (incl. `/proc/net/softnet_stat`), `/sys` (TMP431 `hwmon`, eMMC `life_time`) |
+| nft, conntrack | read-only netlink through privileged helper (`CTNETLINK` `NEW`/`DESTROY` events + on-demand dump) / `nft -j`, `conntrack` |
 | qdisc | RTM_GETQDISC/TCLASS / `tc -j -s` |
-| WireGuard | wgctrl; drop private-key fields at boundary |
-| ethtool | netlink/ioctl; DOM every 300 s |
+| WireGuard & IPsec | `wgctrl` (reconciled with ASK2 `wgfp_rx`; drop private keys at boundary); VICI + `NETLINK_XFRM` + `/proc/net/xfrm_stat` + CAAM stats |
+| ethtool | netlink/ioctl (`ETHTOOL_GSTATS` incl. FMan MAC/RX FIFO overflows at 1–5 s; DOM every 300 s) |
+| VRRP / keepalived | event-driven `keepalived` D-Bus signals (zero polling) |
 | FRR | batched allowlisted `vtysh` JSON |
 | VyOS op-mode | structured output or release-specific text; slow/on-demand |
-| journal | sd-journal cgo or one long-lived `journalctl -o json -f` |
+| journal | one long-lived `journalctl -o json -f` (keeps `CGO_ENABLED=0`) |
 | Kea | allowlisted read-only UNIX-socket JSON |
 | Config/archive | on commit and inotify; read-only archive |
 | DNS, chrony, LLDP, systemd | allowlisted exec/socket, D-Bus; slow cadences |
-| ASK2 | capability adapter, interface and schema TBD |
+| ASK2 / DPAA1 & Two-Plane Reconciler | `fe_flow` debugfs, `fsl_dpa`/`qbman`, CAAM, `wgfp_rx` via `vyview-probe` (defensive schema guards) joined against `netdev`/`conntrack`; optional VPP stats segment |
 
 ## Execution and API
 

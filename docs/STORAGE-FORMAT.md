@@ -122,7 +122,7 @@ Every time slot in T2, T3, and T4 is an atomic, page-aligned, self-verifying blo
   - `p95` computed in-memory during the rollup interval via a fixed 64-bin log histogram or lightweight t-digest.
   - **Monotonic $\Delta t$ rate calculation:** At 200 ms sampling, even 5–10 ms of OS scheduler jitter creates a 2.5–5% rate error if dividing by a hardcoded interval. Every counter read (interface bytes/packets, firewall hits, QoS drops) MUST be stamped with Go's monotonic clock (`time.Now()`) and converted to per-second rates using the exact elapsed monotonic nanoseconds:
     $$\text{Rate} = \frac{\Delta \text{counter}}{\Delta t_{\text{monotonic, sec}}}$$
-    with 32/64-bit counter wrap and interface-reset detection applied before aggregation.
+    with 32/64-bit counter wrap, interface-reset, and ASK2 debugfs driver-reload counter-reset detection applied before aggregation.
   - **Gap-safe running accumulators (`validCount`):** Each active rollup bucket maintains `{validCount, sum, min, max, histogram}` in RAM. When a bucket closes, `avg = sum / validCount`. If `validCount == 0` (e.g., interface down, collector timeout, or reboot downtime), the series' bit in `valid_bits` is cleared and `math.NaN()` is stored so charts render honest gaps instead of dragging averages down with synthetic zeros.
   - **Peak preservation (`max` alongside `avg`):** Because averaging `1,500+` sub-second samples into multi-minute buckets flattens short multi-gigabit bursts, every tier from `T1` upward stores `max` alongside `avg` so `uPlot` can plot the sustained average line with a translucent peak envelope behind it.
 - **Total:** `128 + 12,160 = 12,288 B` (exact 3 pages).
@@ -148,11 +148,12 @@ Every time slot in T2, T3, and T4 is an atomic, page-aligned, self-verifying blo
 | `last_seen_sec` | `8 B` | Last timestamp written (updated lazily in RAM, persisted on catalog change/shutdown) |
 | `canonical_key` | `96 B` | UTF-8 key, e.g., `iface:eth0:rx_bps`, `client:mac:001132aabb01:rx_bps`, `rule:ipv4/fwd/120:pkts` |
 
-Cardinality caps (Brief §10.2) enforce bounded series usage:
-- Top-50 clients by 24 h bytes + `other` bucket (`102` series)
+Cardinality caps (Brief §10.2) enforce bounded series usage and memory under 8k–50k+ concurrent sessions:
+- Top-50 clients by 24 h bytes + `other` bucket (`102` series), tracked via a bounded **Space-Saving / Heavy-Hitter Top-K sketch** so RAM stays constant regardless of session cardinality
 - Top-120 firewall rules by hits + pinned rules (`240` series)
-- Up to 32 WireGuard peers
-- `ethtool -S` history only for pinned or well-known error counters (`≤ 32` per interface)
+- Up to 32 WireGuard peers (including `wgfp_rx` fast-path counters when ASK2 is active)
+- Two-plane offload ratios (`offload_ratio` per port, plus aggregate HW/SW flow counts and CAAM job rates)
+- `ethtool -S` history only for pinned or well-known MAC/FIFO error counters (`≤ 32` per interface)
 
 ### 3.4 Circular Event / Alert / Probe Ring (Region 6, `16 MiB`)
 

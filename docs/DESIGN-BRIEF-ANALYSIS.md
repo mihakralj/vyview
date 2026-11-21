@@ -11,7 +11,7 @@
 **Information architecture:** **15 top-level sections** (~70 deep-linkable views), grouped into:
 - **Top:** Overview (home + kiosk variant), Health & Alerts
 - **NETWORK:** Interfaces (list + per-type detail: ethernet, bridge, VLAN, bond, PPPoE, WireGuard, tunnels, wireless, loopback), Traffic & Clients, Routing (FRR RIB/FIB/BGP/OSPF/BFD/PBR/VRFs), Firewall & NAT (nftables chains, zone matrix, groups, NAT/NAT66, conntrack, flowtables), VPN (WireGuard, IPsec, OpenVPN, optional Tailscale/ZeroTier), QoS (CAKE/HTB/FQ-CoDel, bufferbloat probe), Topology (L2/L3 auto-map)
-- **PLATFORM:** Services (Kea DHCP/v6, PowerDNS Recursor, chrony, SSH, LLDP, mDNS, RA, DDNS, UPnP, SNMP, WAN LB), System (CPU heatmap, PSI/load, memory, hwmon/thermal, storage & eMMC wear, processes, systemd units, kernel/modules, images/boots, NIC driver/firmware, IRQ/softirq, vyview self-health), Dataplane / ASK2 *(optional pluggable module — hidden when absent)*
+- **PLATFORM:** Services (Kea DHCP/v6, PowerDNS Recursor, chrony, SSH, LLDP, mDNS, RA, DDNS, UPnP, SNMP, WAN LB, **VRRP/keepalived HA timeline**), System (CPU heatmap, PSI/load, memory, hwmon/thermal incl. TMP431, storage & eMMC wear, processes, systemd units, kernel/modules, images/boots, NIC driver/firmware, IRQ/`softnet_stat`/softirq, vyview self-health), Dataplane / ASK2 *(optional pluggable module — **Two-Plane Offload Model** reconciling `fe_flow`/FMan/QMan/BMan/CAAM/`wgfp_rx` against kernel `netdev`/`conntrack`; optional VPP/AF_XDP stats adapter — hidden when absent)*
 - **INSPECT:** Configuration (redacted tree, set-commands, JSON, commit history, Myers diff, offline explain panel), Logs & Events (journal live tail, firewall log, auth log, curated event timeline), Diagnostics *(cached results of scheduled probes only)*
 - **Footer:** Settings (100% browser `localStorage`; server holds zero per-user UI state)
 
@@ -105,7 +105,7 @@ Distilled from Brief §9.3, §12.1, and Appendix A (estimates on 1× Cortex-A72 
 | **Template engine** | `templ` vs stdlib `html/template` | Prototype both in Week 1; prefer `templ` for compile-time type safety and fast zero-reflection SSE fragment renders. |
 | **PAM auth vs pure `CGO_ENABLED=0`** | Subprocess PAM helper / pure-Go local+mTLS vs cross-CGO `libpam` | Keep `vyview` `CGO_ENABLED=0` via pure-Go `argon2id`/mTLS + narrow PAM helper (or validate cross-CGO early). |
 | **Chrome icon family** | Classic Regular (default) vs Sharp Regular | Review both on dark/light themes in first visual pass; never mix Classic and Sharp on the same surface. |
-| **ASK2 adapter contract** | `ask2ctl --json` + DPAA1 sysfs/debugfs schema | Freeze capability & JSON schema early; ship stubbed fake adapter for v0.1–v0.3, wire real ASK2 in v0.4. |
+| **ASK2 adapter & Two-Plane Reconciler** | `fe_flow` debugfs + `fsl_dpa`/`qbman`/CAAM/`wgfp_rx` + `ask2ctl --json` | Read debugfs inside `vyview-probe` with defensive version/schema guards (debugfs is not a stable ABI); join `fe_flow` tuples to `conntrack` for per-port and per-flow `offload_ratio`; keep fake stub for stock x86. |
 | **Packaging sequence** | (a) `.deb` in custom VyOS image → (c) upstream `set service dashboard` | Start with (a) for the LS1046A Mono Gateway image; propose (c) upstream after v0.2 stabilizes. |
 
 ### Roadmap Summary (Brief §15)

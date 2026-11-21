@@ -99,7 +99,8 @@ The brief's template engine (`templ` or `html/template`), Datastar client/SDK ve
 
 ## Documentation
 
-- [docs/TECH-STACK.md](docs/TECH-STACK.md) — Complete technology list required on the router (gather, store, Datastar presentation), OS/kernel prerequisites, `CGO_ENABLED=0` trade-offs, and CI-only build toolchain.
+- [docs/TECH-STACK.md](docs/TECH-STACK.md) — Complete technology list required on the router (gather, store, Datastar presentation), Two-Plane hardware offload model, OS/kernel prerequisites, `CGO_ENABLED=0` trade-offs, and CI-only build toolchain.
 - [docs/STORAGE-FORMAT.md](docs/STORAGE-FORMAT.md) — Binary layout and engineering specification for the single-file multi-ring datastore (`vyview.ring`).
 - [docs/DESIGN-BRIEF-ANALYSIS.md](docs/DESIGN-BRIEF-ANALYSIS.md) — Engineering analysis of the *VyOS View-Only Dashboard Design Brief v1.1 (FA Pro)*, collector cadence matrix, security checklist, licensing rules, and open architectural decisions.
+- [docs/GAP-ANALYSIS.md](docs/GAP-ANALYSIS.md) — Monitoring gap analysis against ntopng, btop++, Netdata, OPNsense Insight, OpenWrt LuCI, and MikroTik Torch, verified against `docs/` and `plans/`.
 - [plans/README.md](plans/README.md) — Design plans, architecture specifications, design system tokens, and dashboard screen mockups.
