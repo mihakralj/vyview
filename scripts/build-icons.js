@@ -26,6 +26,11 @@ const manifest = [
   { id: 'fa-radar', pro: 'radar', free: 'stethoscope' },
   { id: 'fa-gear', pro: 'gear', free: 'gear' },
   { id: 'fa-link', pro: 'link', free: 'link' },
+  { id: 'fa-layer-group', pro: 'layer-group', free: 'layer-group' },
+  { id: 'fa-plug', pro: 'plug', free: 'plug' },
+  { id: 'fa-bridge', pro: 'bridge', free: 'bridge' },
+  { id: 'fa-shield-halved', pro: 'shield-halved', free: 'shield-halved' },
+  { id: 'fa-arrows-rotate', pro: 'arrows-rotate', free: 'arrows-rotate' },
   { id: 'fa-angles-left', pro: 'angles-left', free: 'angles-left' },
   { id: 'fa-angles-right', pro: 'angles-right', free: 'angles-right' },
 ]

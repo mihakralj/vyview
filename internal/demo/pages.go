@@ -35,6 +35,7 @@ type Page struct {
 	Evidence                         map[string][]EvidencePanel
 	ZoneNames                        []string
 	ZonePolicies                     []ZonePolicy
+	PhysicalPorts                    []PhysicalPort
 }
 
 type ZonePolicy struct {
@@ -94,13 +95,33 @@ type SeriesView struct {
 
 type ChartBar struct{ X, Y, Width, Height float64 }
 
+type SparkBar struct {
+	X, Y, Width, Height float64
+}
+
 type Record struct {
 	ID, Name, Status, Detail, Related string
 	Values                            []string
 	Category                          string
+	Icon                              string
 	Spark                             []int
+	SparkTX                           []int
+	RXLabel, TXLabel                  string
+	ErrorNote                         string
+	AltName                           string
 	Color                             int
 	Errors, Drops                     int
+	Group                             string
+	Parent                            string
+	Depth                             int
+	TreePrefix                        string
+	SL                                string
+	MAC                               string
+	VRF                               string
+	MTU                               string
+	Underlay                          string
+	UnderlayHref                      string
+	Addresses                         []InterfaceAddress
 }
 
 type Destination struct{ Path, Title, Icon string }
@@ -158,12 +179,18 @@ func matches(query string, values ...string) bool {
 }
 
 func (r Record) matches(query string) bool {
-	return matches(query, append([]string{r.ID, r.Name, r.Status, r.Detail}, r.Values...)...)
+	return matches(query, append([]string{r.ID, r.Name, r.Status, r.Detail, r.Category, r.MAC, r.MTU}, r.Values...)...)
 }
 
 type RecordView struct {
 	Record
-	Href, SparkPath string
+	Href, SparkPath, UnderlayLink, CountersHref string
+	RXBars, TXBars                              []SparkBar
+}
+
+type InterfaceGroupView struct {
+	Name, Hint string
+	Records    []RecordView
 }
 
 type Tab struct {
@@ -199,6 +226,10 @@ type PageView struct {
 	EvidencePanels                 []EvidencePanelView
 	ZoneFilter, ZoneFilterLabel    string
 	ClearZone                      string
+	PhysicalPorts                  []PhysicalPort
+	ViewMode                       string
+	ViewModeLinks                  []NavItem
+	InterfaceGroups                []InterfaceGroupView
 }
 
 type VisualMark struct{ Name, Value, Href string }
@@ -309,6 +340,18 @@ func pageView(page Page, shared Shell, query url.Values) (PageView, error) {
 		v.ErrorPath = sparkline(detail.Errors)
 	}
 	if page.Path == "/interfaces" {
+		v.ViewMode = query.Get("view")
+		if v.ViewMode != "flat" {
+			v.ViewMode = "hierarchy"
+		}
+		if v.Sort != "" {
+			v.ViewMode = "flat"
+		}
+		for _, port := range page.PhysicalPorts {
+			p := port
+			p.Href = link(port.Href)
+			v.PhysicalPorts = append(v.PhysicalPorts, p)
+		}
 		for _, record := range selectedTab.Records {
 			if record.Category != "" && !slices.Contains(v.SelectedCategories, record.Category) &&
 				slices.Contains(strings.Split(query.Get("types"), ","), record.Category) {
@@ -336,7 +379,12 @@ func pageView(page Page, shared Shell, query url.Values) (PageView, error) {
 				}
 			}
 			v.Categories = append(v.Categories, CategoryItem{NavItem: NavItem{Title: category, Href: link(page.Path, "tab", v.TabID, "q", v.Query,
-				"sort", v.Sort, "types", strings.Join(next, ",")), Current: current}, Count: count})
+				"sort", v.Sort, "view", v.ViewMode, "types", strings.Join(next, ",")), Current: current}, Count: count})
+		}
+		typesParam := strings.Join(v.SelectedCategories, ",")
+		v.ViewModeLinks = []NavItem{
+			{Title: "Hierarchy", Href: link(page.Path, "tab", v.TabID, "q", v.Query, "types", typesParam, "view", "hierarchy"), Current: v.ViewMode == "hierarchy"},
+			{Title: "Flat table", Href: link(page.Path, "tab", v.TabID, "q", v.Query, "sort", v.Sort, "types", typesParam, "view", "flat"), Current: v.ViewMode == "flat"},
 		}
 		var up, down, other int
 		for _, record := range selectedTab.Records {
@@ -349,7 +397,10 @@ func pageView(page Page, shared Shell, query url.Values) (PageView, error) {
 				other++
 			}
 		}
-		v.Summary = fmt.Sprintf("%d interfaces · %d up · %d down · %d standby or admin down", len(selectedTab.Records), up, down, other)
+		v.Summary = fmt.Sprintf("%d interfaces · %d up · %d down", len(selectedTab.Records), up, down)
+		if other > 0 {
+			v.Summary += fmt.Sprintf(" · %d standby or admin down", other)
+		}
 	}
 	types := strings.Join(v.SelectedCategories, ",")
 	v.Close = link(page.Path, "tab", v.TabID, "q", v.Query, "sort", v.Sort, "types", types, "ip", query.Get("ip"), "zone", v.ZoneFilter)
@@ -369,7 +420,37 @@ func pageView(page Page, shared Shell, query url.Values) (PageView, error) {
 			if page.Path == "/interfaces" && record.Related != "" {
 				href = link(record.Related)
 			}
-			v.Records = append(v.Records, RecordView{Record: record, Href: href, SparkPath: sparkline(record.Spark)})
+			underlayLink := ""
+			if record.UnderlayHref != "" {
+				underlayLink = link(record.UnderlayHref)
+			}
+			countersHref := ""
+			if page.Path == "/interfaces" && record.Related != "" {
+				countersHref = link(record.Related, "tab", "counters")
+			}
+			rxBars, txBars := btopBars(record.Spark, record.SparkTX)
+			v.Records = append(v.Records, RecordView{Record: record, Href: href, SparkPath: sparkline(record.Spark), UnderlayLink: underlayLink, CountersHref: countersHref, RXBars: rxBars, TXBars: txBars})
+		}
+	}
+	if page.Path == "/interfaces" && v.ViewMode == "hierarchy" {
+		groupHints := map[string]string{
+			"Physical & L2":          "Ports, VLANs & PPPoE",
+			"Tunnels & VPN Overlays": "L3 routed overlays",
+			"Loopback & Control":     "Host loopback",
+		}
+		groupIndex := map[string]int{}
+		for _, rec := range v.Records {
+			g := rec.Group
+			if g == "" {
+				g = "Other"
+			}
+			idx, ok := groupIndex[g]
+			if !ok {
+				idx = len(v.InterfaceGroups)
+				groupIndex[g] = idx
+				v.InterfaceGroups = append(v.InterfaceGroups, InterfaceGroupView{Name: g, Hint: groupHints[g]})
+			}
+			v.InterfaceGroups[idx].Records = append(v.InterfaceGroups[idx].Records, rec)
 		}
 	}
 	if v.SelectedID != "" && v.Selected == nil {

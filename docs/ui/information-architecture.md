@@ -31,7 +31,7 @@
 | --- | --- | --- |
 | **MONITOR** | **[Overview](pages/01-overview.md)** | Plain-language health summary, WAN card (failure chain), hero throughput, 7 KPIs, linked top talkers & dated events; kiosk mode. |
 | **MONITOR** | **[Health & Alerts](pages/14-health-alerts.md)** | Active vs. past alerts, built-in operational checks, **Read-Only Security Check** (*"Am I protected well enough?"*). |
-| **NETWORK** | **[Interfaces](pages/02-interfaces-list.md)** | 3-layer view (physical port panel + core table + logical bridge/VLAN/MRP tree) & type-specific [Interface Detail](pages/03-interface-detail.md) (Overview, Counters, Optics on SFP only, Addresses, Queues, Config). |
+| **NETWORK** | **[Interfaces](pages/02-interfaces-list.md)** | Unified 2-layer view (physical front-panel port strip + collapsible hierarchy tree-table for Physical/L2 VLANs/PPPoE/Bridges, L3 VPN overlays with `via <underlay>` chips, and multi-IPv4/IPv6 GUA/ULA addresses) & type-specific [Interface Detail](pages/03-interface-detail.md) (Overview, Counters, Optics on SFP+ only, Addresses, Queues, Config). |
 | **NETWORK** | **[Traffic & Clients](pages/04-traffic-clients.md)** | Stacked top-6 + other chart, client/OT asset inventory, protocol mix, WAN↔segment & inter-VLAN Sankey, virtualized Conntrack & NAT table. |
 | **NETWORK** | **[Routing](pages/05-routing.md)** | VRF selector & per-VRF RIB/FIB v4/v6 tabs (`default` first), longest-prefix lookup, static, BGP, OSPF, BFD, policy routing, churn. |
 | **NETWORK** | **[Firewall & NAT](pages/06-firewall-nat.md)** | Zone policy matrix above/beside dense FortiGate/OPNsense-style grouped rule table, **Firewall Security Check** (*"Is my firewall safe?"*), groups, NAT/NAT66, flowtables. |

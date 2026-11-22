@@ -1484,6 +1484,538 @@ footer {
   }
 }
 
+.port-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.port-strip li {
+  display: flex;
+  min-width: 0;
+}
+
+.port-tile {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--unknown);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.port-tile:hover {
+  border-color: var(--accent);
+}
+
+.port-tile.port-up {
+  border-top-color: var(--ok);
+}
+
+.port-tile.port-down {
+  border-top-color: var(--crit);
+  background: var(--surface);
+}
+
+.port-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.port-connector {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.port-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+}
+
+.dot-ok {
+  background: var(--ok);
+}
+
+.dot-crit {
+  background: var(--crit);
+}
+
+.port-desc {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.port-children {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.child-pill {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.parent-ref,
+.underlay-link {
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.underlay-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.iface-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Offset architectural tree-table: rows float on recessed canvas so nested rows
+   physically step right with a crisp 'L' connector dropping from the parent row. */
+.iface-table-wrap {
+  background: var(--bg);
+  padding: 4px 10px 10px;
+  border: 1px solid var(--border);
+}
+
+.iface-table {
+  border-collapse: separate;
+  border-spacing: 0 4px;
+  width: 100%;
+}
+
+.iface-table thead th {
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.iface-table td,
+.iface-table th {
+  vertical-align: top;
+}
+
+.iface-group-row td {
+  background: transparent;
+  border: 0;
+  padding: 14px 4px 4px;
+}
+
+.iface-group-row:first-child td {
+  padding-top: 6px;
+}
+
+.group-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-right: 8px;
+}
+
+.group-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Base row surface (root depth-0 starts flush left) */
+.iface-row td,
+.iface-row th.tree-depth-0 {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 8px;
+}
+
+.iface-row th.tree-depth-0 {
+  border-left: 1px solid var(--border);
+}
+
+.iface-row td:last-child {
+  border-right: 1px solid var(--border);
+}
+
+/* Disconnected / down rows stay visually calm & distinct without dimming text contrast */
+.iface-row-down td,
+.iface-row-down th.tree-depth-0 {
+  background: color-mix(in srgb, var(--bg) 42%, var(--surface));
+}
+
+/* Nested rows: transparent recessed gutter on the left + crisp 2px 'L' connector
+   dropping straight from the bottom of the parent row into the offset row edge. */
+.tree-cell {
+  position: relative;
+  white-space: normal;
+  min-width: 196px;
+}
+
+.iface-row th.tree-depth-1,
+.iface-row th.tree-depth-2 {
+  background: transparent;
+  border: 0;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  padding-right: 8px;
+}
+
+.iface-row th.tree-depth-1 {
+  padding-left: 42px;
+}
+
+.iface-row th.tree-depth-2 {
+  padding-left: 72px;
+}
+
+/* Paint the offset row surface & top/bottom/left borders directly on the <th>
+   so top/bottom hairlines align to 0px with sibling <td> cells at any row height. */
+.iface-row th.tree-depth-1::before,
+.iface-row th.tree-depth-2::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid color-mix(in srgb, var(--border-strong) 55%, var(--border));
+  pointer-events: none;
+}
+
+.iface-row th.tree-depth-1::before {
+  left: 30px;
+}
+
+.iface-row th.tree-depth-2::before {
+  left: 60px;
+}
+
+.tree-depth-1 .tree-box,
+.tree-depth-2 .tree-box {
+  position: relative;
+  z-index: 1;
+}
+
+.tree-depth-1 .tree-elbow,
+.tree-depth-2 .tree-elbow {
+  position: absolute;
+  top: -4px;
+  height: 22px;
+  width: 18px;
+  border-left: 1.5px solid color-mix(in srgb, var(--border-strong) 55%, var(--border));
+  border-bottom: 1.5px solid color-mix(in srgb, var(--border-strong) 55%, var(--border));
+  pointer-events: none;
+}
+
+.tree-depth-1 .tree-elbow {
+  left: 12px;
+}
+
+.tree-depth-2 .tree-elbow {
+  left: 42px;
+}
+
+.iface-name-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.iface-type-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--muted);
+  flex-shrink: 0;
+  display: block;
+}
+
+.iface-type-icon.icon-up {
+  color: var(--ok);
+}
+
+.iface-type-icon.icon-down {
+  color: var(--crit);
+}
+
+.iface-link {
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.iface-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.iface-type-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.iface-state-up {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.iface-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 2px;
+  padding-left: 22px;
+}
+
+.sl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.addr-cell {
+  white-space: normal;
+  min-width: 205px;
+}
+
+.addr-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.addr-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* Borderless fixed-width typographic scope tags — zero boxes, straight CIDR column */
+.scope-tag {
+  display: inline-block;
+  width: 56px;
+  text-align: right;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.scope-mac {
+  color: var(--muted);
+}
+
+.addr-mac .addr-cidr {
+  color: var(--muted);
+}
+
+.scope-ipv4 {
+  color: var(--accent);
+}
+
+.scope-gua {
+  color: var(--chart-2);
+}
+
+.scope-ula {
+  color: var(--ok);
+}
+
+.scope-ll {
+  color: var(--warn);
+}
+
+.scope-ipv6 {
+  color: var(--info);
+}
+
+.addr-cidr {
+  color: var(--text);
+}
+
+.addr-peer {
+  color: var(--muted);
+}
+
+.addr-meta {
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.copy-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.copy-icon-btn svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.copy-icon-btn:hover,
+.copy-icon-btn:focus-visible {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* btop-style mirrored RX/TX throughput sparkline filling full row height
+   with RX pinned top-right and TX pinned bottom-right. */
+.iface-row td.tp-cell {
+  position: relative;
+  min-width: 196px;
+}
+
+.iface-row td.tp-cell-active::before {
+  content: "";
+  display: block;
+  height: 36px;
+}
+
+.btop-tp {
+  position: absolute;
+  inset: 6px 8px;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.btop-spark {
+  display: block;
+  flex: 1;
+  min-width: 96px;
+  height: 100%;
+}
+
+.btop-centerline {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.btop-rx {
+  fill: var(--chart-1);
+}
+
+.btop-tx {
+  fill: var(--chart-2);
+}
+
+.btop-rates {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 100%;
+  min-width: 84px;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.btop-rate-rx,
+.btop-rate-tx {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.btop-dir-rx {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.btop-dir-tx {
+  color: var(--chart-2);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.btop-fault {
+  font-size: 10px;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btop-fault:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1100px) {
+  .port-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px) {
+  .port-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

@@ -25,13 +25,15 @@ func (Fixtures) Page(_ context.Context, path, rangeID, scenario string) (Page, e
 	}
 	page.Path = path
 	if path == "/interfaces" {
-		page.Sections[0].Columns = []string{"Type", "Description", "Address", "MTU", "Link", "RX", "TX", "Errors / drops"}
+		page.PhysicalPorts = physicalPorts()
+		page.Sections[0].Columns = []string{"Addresses", "VRF", "Link", "Throughput (1h)"}
 		page.Sections[0].Records = interfaceRecords()
 	}
 	if scenario == "unavailable" && path != "/settings" {
 		for i := range page.Sections {
 			page.Sections[i].Records = nil
 		}
+		page.PhysicalPorts = nil
 		page.InterfaceDetail = nil
 		page.Series = nil
 	}
@@ -41,12 +43,13 @@ func (Fixtures) Page(_ context.Context, path, rangeID, scenario string) (Page, e
 	if scenario != "unavailable" {
 		enhancePage(&page, path, rangeID)
 		switch {
-		case strings.HasPrefix(path, "/interfaces/") && path != "/interfaces/pppoe0" && path != "/interfaces/eth0":
+		case strings.HasPrefix(path, "/interfaces/") && path != "/interfaces/eth0" && path != "/interfaces/eth3" && path != "/interfaces/eth4":
 			samples := map[string][]int{
-				"eth0": {220, 310, 280, 510, 630, 480, 420, 690, 150},
-				"eth3": {0, 1, 0, 1, 2, 1, 1, 2, 1},
-				"br0":  {42, 48, 65, 60, 75, 55, 58, 80, 31},
-				"wg0":  {11, 18, 19, 30, 25, 16, 22, 38, 12},
+				"eth3.10": {180, 240, 220, 340, 410, 330, 312, 460, 120},
+				"pppoe10": {170, 228, 210, 322, 392, 315, 298, 440, 110},
+				"eth4.20": {90, 120, 130, 165, 195, 155, 142, 210, 80},
+				"wg0":     {11, 18, 19, 30, 25, 16, 22, 38, 12},
+				"xfrm0":   {8, 12, 11, 19, 16, 13, 14, 21, 9},
 			}[strings.TrimPrefix(path, "/interfaces/")]
 			if len(samples) > 0 {
 				page.Series = map[string]*Series{"overview": newSeries("Receive throughput", "Mb/s", rangeID, samples)}
@@ -207,7 +210,7 @@ func fixturePages() map[string]Page {
 			}},
 			{"routes", "RIB / FIB", []string{"Next hop", "Protocol", "Interface"}, []Record{
 				row("default", "0.0.0.0/0", "Installed", "Default IPv4 route selected from BGP.", "/interfaces/eth0", "203.0.113.1", "BGP", "eth0"),
-				row("lan", "192.0.2.0/24", "Installed", "Connected route for LAN clients.", "/interfaces/br0", "On-link", "Connected", "br0"),
+				row("lan", "192.0.2.0/24", "Installed", "Connected route for LAN clients.", "/interfaces/eth4.20", "On-link", "Connected", "eth4.20"),
 			}},
 		}},
 		"/vpn/wireguard": {Title: "WireGuard", Description: "Tunnel inventory, public identities, and handshake health.", Source: "WireGuard peer snapshot", Sections: []Section{
