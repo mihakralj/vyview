@@ -11,7 +11,7 @@ It is **read-only by construction in the web UI** (no mutating HTTP endpoints, n
 | File on Router | Role |
 | --- | --- |
 | **1. `/usr/bin/vyview`** | Single static Go binary (`go:embed`ded HTML templates, UnoCSS, Font Awesome SVG sprite, Datastar ES module, uPlot, lazy ECharts, WOFF2 fonts, offline docs). Invoked as two hardened systemd units from the same binary: `vyview web` (unprivileged, zero capabilities) and `vyview probe` (`CAP_NET_ADMIN` read-only helper over a UNIX socket). |
-| **2. `/var/lib/vyview/vyview.ring`** | Single pre-allocated, fixed-size **multi-ring binary datastore** (configurable via `--data-path` for external USB) holding the series catalog, time-major rollup rings (`60 s × 14 d`, `5 min × 90 d`, `1 h × 2 y` — or compact `5 min × 7 d`, `1 h × 1 y`), circular event/alert/probe ring, and an optional clean-shutdown snapshot of the in-RAM `5 s` hot ring. |
+| **2. `/usr/lib/live/mount/persistence/vyview/vyview.ring`** | Single pre-allocated, fixed-size **multi-ring binary datastore** stored directly on VyOS's underlying physical persistence mount outside OverlayFS and `/config` (auto-detects `/lib/live/mount/persistence/vyview/` on older VyOS; configurable via `--data-path` for external USB). Survives all image upgrades without bloating `/config` backups; holds the series catalog, time-major rollup rings (`60 s × 14 d`, `5 min × 90 d`, `1 h × 2 y` — or compact `5 min × 7 d`, `1 h × 1 y`), circular event/alert/probe ring, and optional clean-shutdown snapshot of the `5 s` hot ring. |
 
 Live `200 ms` (5 Hz) rings (`~1.5 MiB`, `60 fps` interpolated in `<vy-chart>`) and the `5 s` hot tier (`tmpfs`) live strictly in RAM to protect eMMC/SD flash endurance while keeping live charts fluid.
 

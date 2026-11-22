@@ -13,7 +13,7 @@
     - **Pre-EOL Info (primary alarm):** `0x01` → `"Normal"`, `0x02` → `"Warning (80% of reserved blocks consumed)"` (red/critical), `0x03` → `"Urgent (90%+ reserved blocks consumed)"` (red/critical).
   - **Datastore Self-Health (`vyview.ring`):** Reports **health of both Superblock A and Superblock B**, **torn-slot count**, **saved vs. expected nominal slots** per tier, configured storage target (`eMMC` vs. USB `--data-path`), and real host write rate from `/proc/self/io` (`MB/day` vs. `< 50 MB/day` budget).
   - **Boot Images:** Lists **all installed VyOS images** (not just the active one), marking which is currently running, which boots next (`default`), version, and build date.
-  - **Disk Usage:** Per-partition used/free bars (`/`, `/boot`, `/config`, `/var/lib/vyview`) with an explicit **"Room for new VyOS image"** indicator (warn `> 85%`).
+  - **Disk Usage:** Per-partition used/free bars (`/`, `/usr/lib/live/mount/persistence`, `/config`, and custom `--data-path` mounts) with an explicit **"Room for new VyOS image"** indicator (warn `> 85%`).
 - **Units, Kernel & IRQs Tabs:** systemd units (read-only), kernel version/cmdline/taint/modules, NIC drivers/firmware, per-CPU IRQ/`softirq`/`/proc/net/softnet_stat` distribution (surfacing RSS imbalance and backlog drops), and **vyview self-health** (collector tick duration per source, dropped ticks, RSS).
 
 ---

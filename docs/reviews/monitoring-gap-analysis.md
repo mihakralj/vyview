@@ -49,7 +49,7 @@ Status legend: **PLANNED** (already in original brief), **ADDED** (gap adopted i
 | Single in-process Go collector (no per-tick forks) | P0 | **PLANNED** | [System Architecture §3](../architecture/system-architecture.md#3-stage-1--data-gathering-pipeline) |
 | **Event-driven netlink / D-Bus collectors** (`rtnetlink`, `ctnetlink`, `keepalived`, `bridge mrp`) | P0 | **ADDED** | [System Architecture §3.1](../architecture/system-architecture.md#31-go-collector-libraries-compiled-into-vyview) |
 | **Two-Plane Offload Reconciler** | P0 | **ADDED** | [System Architecture §2](../architecture/system-architecture.md#2-two-plane-hardware-offload-model) |
-| Self-telemetry (tick duration, dropped ticks, `/proc/self/io`, RSS) | P0 | **PLANNED** | [System](../ui/pages/11-system.md), [Storage Format §6](../architecture/storage-format.md#6-schema-upgrades--self-monitoring) |
+| Self-telemetry (tick duration, dropped ticks, `/proc/self/io`, RSS) | P0 | **PLANNED** | [System](../ui/pages/11-system.md), [Storage Format §6](../architecture/storage-format.md#6-vyos-persistence-location-upgrades--self-monitoring) |
 | Prometheus `/metrics` export (incl. health & alerts) | P1 | **PLANNED + PROMOTED** | [System Architecture §4](../architecture/system-architecture.md#4-stage-2--storage--metrics-export) |
 | **Space-Saving / Heavy-Hitter Top-K sketch** | P0 | **ADDED** | [Storage Format §3.4](../architecture/storage-format.md#34-series-catalog--cardinality-caps), [Traffic & Clients](../ui/pages/04-traffic-clients.md) |
 | Monotonic $\Delta t$ rate math + wrap/driver-reload resets | P0 | **PLANNED + ENHANCED** | [Storage Format §3.3](../architecture/storage-format.md#33-rate-math-gaps--peak-preservation) |

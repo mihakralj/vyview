@@ -6,7 +6,7 @@
 
 ## 1. Design Goals & Constraints
 
-1. **One active persistent file on disk (plus optional passive shadow copy):** All persistent time-series rings (`T2`/`T3`/`T4`), series metadata, curated events, alert transitions, diagnostic probe history, and an optional `T1` clean-shutdown snapshot live in **one fixed-size binary file** (`vyview.ring`, defaulting to `/var/lib/vyview/vyview.ring` or any mounted path via `--data-path` / `retention.path`, such as an external USB drive).
+1. **One active persistent file on disk (plus optional passive shadow copy):** All persistent time-series rings (`T2`/`T3`/`T4`), series metadata, curated events, alert transitions, diagnostic probe history, and an optional `T1` clean-shutdown snapshot live in **one fixed-size binary file** (`vyview.ring`). On VyOS, it defaults to **`/usr/lib/live/mount/persistence/vyview/vyview.ring`** (with automatic fallback detection of `/lib/live/mount/persistence/vyview/vyview.ring` on older live-boot layouts), or any operator-configured path via `--data-path` / `retention.path` (such as an external USB drive `/mnt/usb/vyview.ring`).
    - *Why one fixed file rather than per-flush tick/tock copies:* Modern eMMC FTLs wear-level logical block overwrites across physical erase blocks inside a fixed file, whereas duplicating a 160–778 MiB file per flush would destroy flash endurance. Instead, **A/B ping-pong superblocks** + **per-slot CRC32C** isolate any power-cut torn write to a single 12 KiB slot. Operators wanting an offline/exportable redundant copy can configure `--snapshot-path` to refresh a passive read-only backup on a slow schedule (e.g., daily) or clean shutdown.
 2. **Fluid `200 ms` (5 Hz) live telemetry decoupled from flash I/O:** Fast kernel counters sample every `200 ms` into an in-process RAM ring (`T0`) and cascade with exact integer multipliers (`25× → 12× → 5× → 12×`) into `T1` (`5 s`, RAM/`tmpfs`) and the persistent flash tiers (`T2`–`T4`). Slow metrics (`1 s`+) piggyback on every 5th tick.
 3. **Zero growth, zero fragmentation, zero compaction:** Pre-allocated once with `fallocate(2)`; file size never changes after initialization.
@@ -182,7 +182,23 @@ Cross-tier rollups (`T1 → T2 → T3 → T4`) aggregate **statistically** rathe
 
 ---
 
-## 6. Schema Upgrades & Self-Monitoring
+## 6. VyOS Persistence Location, Upgrades & Self-Monitoring
 
-- **Schema upgrades:** On a `format_version` bump, vyview creates a fresh `vyview.vN.ring` and mounts the previous ring file **read-only** for historical reads until it ages out — avoiding risky in-place migrations on flash.
-- **Self-monitoring (`System › Storage & Images` and `Settings`):** Exposes real host write rate from `/proc/self/io` (`write_bytes`), **health of both Superblock A and Superblock B**, **torn-slot count**, **saved vs. expected nominal slots** per tier, configured storage target (`eMMC` vs. USB `--data-path`), and kernel-sysfs eMMC `EXT_CSD` wear (`life_time` Type A/B + `pre_eol_info`).
+### 6.1 Storage Path & VyOS Live-Boot Persistence
+
+VyOS boots via a live-boot/OverlayFS architecture where the underlying physical disk partition is mounted at `/usr/lib/live/mount/persistence` (or `/lib/live/mount/persistence` on older versions; confirm via `mount | grep persistence`). Storing `vyview.ring` directly at the root of that persistence mount keeps historical data durable across every image upgrade with zero extra partitioning:
+
+| Path | Behavior on Reboot & `add system image` | Recommendation |
+| --- | --- | --- |
+| **`/usr/lib/live/mount/persistence/vyview/vyview.ring`** *(auto-detects `/lib/live/mount/persistence/vyview/` on older VyOS)* | Persists across reboots and **all VyOS image upgrades** directly on the underlying physical disk; sits outside both OverlayFS and `/config` so it **never bloats `/config` backups** or gets copied during upgrades. | **Default (Recommended)** for on-router storage. |
+| **External USB / dedicated mount** (`--data-path /mnt/usb/vyview.ring`) | Persists independently of the boot eMMC/SSD; isolates flash wear onto removable media. | **Recommended** for heavily worn eMMC or long `full` retention. |
+| `/config/user-data/vyview/vyview.ring` | Official VyOS user-data path; copied automatically across image upgrades, **but enters `/config` backups and copies hundreds of MiB on every upgrade**. | Only if operator explicitly requires config-coupled migration; restrict to `compact` profile. |
+| `/var/lib/vyview/vyview.ring` *(image-local overlay)* | Lives inside `/boot/<image-name>/rw/` and is **left behind on image upgrades** unless backed by a separate mount/symlink. | Avoid unless explicitly bind-mounted from persistence or a dedicated partition. |
+
+- **Startup checks & boot sequencing:** At startup, vyview validates that the persistence path is mounted and writable, checks free-space headroom (`≥ 20%` reserved for VyOS image upgrades), optionally verifies write latency on external USB targets, and supports a configurable `--start-delay` (`After=network-online.target vyos-router.service`). Because `/usr/lib/live/mount/persistence/vyview` lives outside the active OverlayFS, vyview opens it directly (no root-filesystem symlink is required; operators who want a convenience alias may add one in `/config/scripts/vyos-postconfig-bootup.script`).
+
+### 6.2 Backups, Schema Upgrades & Self-Monitoring
+
+- **Optional passive shadow copy:** Operators can configure `--snapshot-path` (daily or on clean shutdown) to maintain a static, read-only backup copy for local redundancy or off-box export without touching the active `.ring` file.
+- **Schema upgrades (fresh file + read-only prior mount):** On a `format_version` bump, vyview creates a fresh `vyview.vN.ring` and mounts the previous ring file **read-only** for historical reads until it ages out — avoiding risky in-place migrations on flash.
+- **Self-monitoring (`System › Storage & Images` and `Settings`):** Exposes real host write rate from `/proc/self/io` (`write_bytes`), **health of both Superblock A and Superblock B**, **torn-slot count**, **saved vs. expected nominal slots** per tier, configured storage target (VyOS persistence partition vs. USB `--data-path`), and kernel-sysfs eMMC `EXT_CSD` wear (`life_time` Type A/B + `pre_eol_info`).

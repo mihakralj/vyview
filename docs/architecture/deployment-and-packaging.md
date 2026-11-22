@@ -30,7 +30,7 @@ set service dashboard authentication mode pam
 set service dashboard authentication allow-group vyattaop
 set service dashboard retention profile lean
 set service dashboard retention max-age 90d
-set service dashboard retention path /var/lib/vyview
+set service dashboard retention path /usr/lib/live/mount/persistence/vyview
 set service dashboard retention snapshot-path /mnt/usb/vyview-backup.ring
 set service dashboard startup-delay 5s
 set service dashboard privacy per-client aggregate
@@ -55,7 +55,7 @@ Remote installs pair this operator group with a dedicated **SSH public-key-only*
 3. **Service users & supplementary groups:**
    - `vyview` user in `systemd-journal` (journald reads), `vyattacfg-ro` (read-only `/config/archive`), `frrvty` (read-only `vtysh`), plus read access to Kea/VICI/Podman sockets.
    - `vyview-probe` user with `CAP_NET_ADMIN` only.
-4. **Persistent storage target:** Mount a dedicated eMMC partition, LV, or external USB drive at `/var/lib/vyview` (or pass `--data-path /mnt/usb/vyview.ring`) so history survives VyOS image upgrades without bloating `/config` backups. If `/config/vyview` is used instead, restrict to the `compact` or `lean` profile and verify backup size impact.
+4. **Persistent storage target:** Store `vyview.ring` directly on VyOS's underlying physical persistence mount at `/usr/lib/live/mount/persistence/vyview/vyview.ring` (auto-detecting `/lib/live/mount/persistence/vyview/` on older VyOS layouts) — outside both the per-image OverlayFS and `/config` — so history survives every `add system image` upgrade with zero extra partitioning and without bloating `/config` backups. External USB drives are supported via `--data-path /mnt/usb/vyview.ring`. If `/config/user-data/vyview` is chosen instead, restrict to the `compact` profile because VyOS copies `/config` on every upgrade and includes it in backups.
 5. **Delayed boot start:** Order units `After=network-online.target vyos-router.service` with optional `--start-delay` (e.g., `5s`) to deconflict with VyOS interface/dataplane initialization.
 
 ---
@@ -80,7 +80,7 @@ NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
-ReadWritePaths=/var/lib/vyview /run/vyview
+ReadWritePaths=/usr/lib/live/mount/persistence/vyview /run/vyview
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 SystemCallFilter=@system-service
 SystemCallErrorNumber=EPERM

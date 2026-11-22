@@ -10,7 +10,7 @@ vyview is architected first for **on-router execution** on embedded ARM64 (`NXP 
 
 ### Files on the Router
 1. **`/usr/bin/vyview`** — Single static Go binary (`CGO_ENABLED=0`) containing all collectors, the storage engine, the SSE hub, the HTTP/2 TLS server, the opt-in MCP interface, and all `go:embed`ded frontend assets.
-2. **`/var/lib/vyview/vyview.ring`** *(configurable via `--data-path`)* — Single pre-allocated, 4 KiB page-aligned multi-ring binary datastore (see [Storage Format](storage-format.md)).
+2. **`/usr/lib/live/mount/persistence/vyview/vyview.ring`** *(auto-detects `/lib/live/mount/persistence/vyview/` on older VyOS; configurable via `--data-path`)* — Single pre-allocated, 4 KiB page-aligned multi-ring binary datastore sitting directly on the underlying physical persistence disk outside OverlayFS and `/config` (see [Storage Format](storage-format.md)).
 
 ### Least-Privilege Process Split
 The same single binary runs as two hardened systemd units:
@@ -164,7 +164,7 @@ All frontend assets are built at CI time, content-hashed (`/a/<hash>.<ext>`), pr
 | Runs on the Router | CI / Developer Machine Only (Never on Router) |
 | --- | --- |
 | `/usr/bin/vyview` (`vyview-web` + `vyview-probe`) | Go compiler, `templ` CLI, `govulncheck`, fuzzers |
-| `/var/lib/vyview/vyview.ring` (`--data-path`) | Node.js, npm, UnoCSS CLI, ECharts modular bundler |
+| `/usr/lib/live/mount/persistence/vyview/vyview.ring` (`--data-path`) | Node.js, npm, UnoCSS CLI, ECharts modular bundler |
 | `/run/vyview/` (`tmpfs`: `5 s` hot ring, `probe.sock`, rendered `vyview.toml`) | Font Awesome icon subsetter & Pro leak-guard CI check |
 | Existing VyOS/Linux interfaces (netlink, `/proc`, `/sys`, FRR, Kea, VICI, Podman, `journalctl`) | Playwright + `axe-core`, `.deb` packager, CycloneDX SBOM |
 
