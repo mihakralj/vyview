@@ -41,6 +41,13 @@
   --ok: #10b981; --warn: #f5a524; --crit: #f0573a; --info: #60a5fa; --unknown: #8b95a5;
   --chart-1: #22d3ee; --chart-2: #a78bfa; --chart-3: #f59e0b; --chart-4: #34d399;
   --chart-5: #f472b6; --chart-6: #60a5fa; --chart-7: #fb7185; --chart-8: #facc15;
+  --chart-9: #fb923c; --chart-10: #2dd4bf; --chart-11: #818cf8; --chart-12: #a3e635;
+  --chart-13: #e879f9; --chart-14: #38bdf8; --chart-15: #f87171; --chart-16: #d4a373;
+  --chart-other: #8b95a5; --chart-hw: #22d3ee; --chart-sw: #fb923c;
+  --chart-grid: #22304d; --chart-axis: #93a1b8; --chart-crosshair: #94a3b8;
+  --chart-band: rgba(96, 165, 250, 0.14); --chart-peak: rgba(34, 211, 238, 0.18);
+  --heat-0: #16213a; --heat-1: #164e63; --heat-2: #0e7490;
+  --heat-3: #10b981; --heat-4: #f59e0b; --heat-5: #f0573a;
   --accent-fg: var(--bg);
   --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --border-strong: var(--unknown);
@@ -52,8 +59,15 @@ html[data-theme="light"] {
   --border: #d5dee9; --text: #0f172a; --text-muted: #475569;
   --accent: #0e7490; --accent-2: #0f766e;
   --ok: #047857; --warn: #b45309; --crit: #b91c1c; --info: #1d4ed8; --unknown: #64748b;
-  --chart-1: #0891b2; --chart-2: #7c3aed; --chart-3: #d97706; --chart-4: #059669;
-  --chart-5: #db2777; --chart-6: #2563eb; --chart-7: #e11d48; --chart-8: #ca8a04;
+  --chart-1: #0891b2; --chart-2: #7c3aed; --chart-3: #b45309; --chart-4: #059669;
+  --chart-5: #db2777; --chart-6: #2563eb; --chart-7: #e11d48; --chart-8: #a16207;
+  --chart-9: #c2410c; --chart-10: #0f766e; --chart-11: #4338ca; --chart-12: #4d7c0f;
+  --chart-13: #a21caf; --chart-14: #0369a1; --chart-15: #b91c1c; --chart-16: #92400e;
+  --chart-other: #64748b; --chart-hw: #0891b2; --chart-sw: #c2410c;
+  --chart-grid: #e2e8f0; --chart-axis: #475569; --chart-crosshair: #334155;
+  --chart-band: rgba(37, 99, 235, 0.10); --chart-peak: rgba(8, 145, 178, 0.14);
+  --heat-0: #f1f5f9; --heat-1: #cffafe; --heat-2: #67e8f9;
+  --heat-3: #34d399; --heat-4: #f59e0b; --heat-5: #dc2626;
   --accent-fg: var(--surface);
 }
 * { box-sizing: border-box; }
@@ -228,7 +242,11 @@ button { cursor: pointer; }
 .series-2 path { stroke: var(--chart-2); } .series-3 path { stroke: var(--chart-3); }
 .series-4 path { stroke: var(--chart-4); } .series-5 path { stroke: var(--chart-5); }
 .series-6 path { stroke: var(--chart-6); } .series-7 path { stroke: var(--chart-7); }
-.series-8 path { stroke: var(--chart-8); }
+.series-8 path { stroke: var(--chart-8); } .series-9 path { stroke: var(--chart-9); }
+.series-10 path { stroke: var(--chart-10); } .series-11 path { stroke: var(--chart-11); }
+.series-12 path { stroke: var(--chart-12); } .series-13 path { stroke: var(--chart-13); }
+.series-14 path { stroke: var(--chart-14); } .series-15 path { stroke: var(--chart-15); }
+.series-16 path { stroke: var(--chart-16); } .series-other path { stroke: var(--chart-other); }
 .interface-down { color: var(--crit); font-weight: 600; }
 .interface-warning { color: var(--warn); font-weight: 600; }
 .columns { margin-bottom: 12px; }

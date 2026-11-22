@@ -1,3 +1,0 @@
-# Overview (§5.1; PDF pp. 14–15)
-
-One viewport at 1440 × 900: conditional alert strip, WAN status and hero throughput, seven KPIs, top talkers and recent events. WAN shows state, addresses, gateway, RTT/loss, lease and failover at 5 s (RTT 10 s); hero netlink rates are 1 s with range tiers, annotations, anomaly band, synchronized cursor and export. KPIs show CPU, memory, temperature, conntrack, clients, VPN and optional offload. CPU warns >80% for 5 min; conntrack warns >75%, critical >90%. Top five clients plus other use 10 s accounting; recent ten events link to the timeline. Full widget/source/retention table: [extraction](../brief-extracted.txt), pages 14–15.
