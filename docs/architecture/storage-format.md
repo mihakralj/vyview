@@ -28,7 +28,7 @@ Every tier is an exact integer multiple of the tier below (`200 ms × 25 = 5 s`,
 | **T3 Cool** | `300 s` | `5 × T2` | `25,920` | `90 d` (30 d / 90 d) | All (`≤ 760`) | `vyview.ring` (Region 4) | `303.75 MiB` full / `202.50 MiB` lean |
 | **T4 Cold** | `3600 s` | `12 × T3` | `17,520` | `2 y` (1 y / 2 y + anomaly bands) | All (`≤ 760`) | `vyview.ring` (Region 5) | `205.31 MiB` full / `136.88 MiB` lean |
 | **Events / Alerts / Probes** | Event | — | `4,096` frames | `30 d` events / `90 d` alerts & probes | Structured records | `vyview.ring` (Region 6) | `16.00 MiB` |
-| **T1 Shutdown Snapshot** *(opt.)* | On stop | — | 1 zstd blob | Latest `24 h` hot tier across planned reboots | T1 snapshot on `SIGTERM` | `vyview.ring` (Region 7) | `16.00 MiB` |
+| **T1 Shutdown Snapshot** *(opt.)* | On stop | — | 1 compressed blob (`s2`/`gzip`/`zstd`) | Latest `24 h` hot tier across planned reboots | T1 snapshot on `SIGTERM` | `vyview.ring` (Region 7) | `16.00 MiB` |
 
 ### Storage Profiles & Retention Bounds (`--profile` × `--retention`)
 
@@ -45,10 +45,17 @@ Every tier is an exact integer multiple of the tier below (`200 ms × 25 = 5 s`,
   - `WARN` if insufficient free space exists for requested profile + retention.
   - `WARN` (early advisory) when eMMC wear exceeds `50%` (`EXT_CSD >= 0x06`), escalating at `≥ 0x08` (`70–80%+` worn) or `Pre-EOL >= 0x02`.
 
-### In-RAM `T0` Slab & Fast/Slow Loop Split
-- **Contiguous page-aligned slab:** `T0` holds `2,048 × float32 = 8,192 B` (`2 × 4 KiB` pages) per core series with power-of-two index masking (`idx & 2047`), allocated as one `1.5 MiB` contiguous backing slice (`192 × 8 KiB`) to eliminate heap fragmentation and reduce TLB misses on Cortex-A72.
-- **Fast loop (`200 ms` / 5 Hz):** Samples interface `IFLA_STATS64`, `/proc/stat`, `/proc/softirqs`, and active queue drops. Matches DPAA1/FMan hardware shadow-counter coalescing (~100–250 ms) while eliminating jerky 1-second UI steps.
-- **Optional `100 ms` (10 Hz) diagnostics burst:** When explicitly toggled on a LAN interface detail view (e.g., `iperf3`/`TRex` testing), live streaming may run at `100 ms` in-memory without changing `T1`–`T4` ring geometry.
+### 2.1 In-RAM Structure-of-Arrays (SoA) Slabs, Concurrency & Dynamic Lifecycle
+
+vyview deliberately uses a **hybrid layout**: **Structure-of-Arrays (SoA)** in RAM for zero-scatter `uPlot` reads and **Time-Major** blocks on flash (`T2`–`T4`) to avoid per-series page write amplification:
+
+- **SoA RAM slabs (`T0`, `T1`, and T2+ query cache):**
+  - `T0` allocates `2,048 × float32 = 8,192 B` (`2 × 4 KiB` pages) per core series with power-of-two index masking (`idx & 2047`) inside one contiguous `1.5 MiB` backing slice (`192 × 8 KiB`), eliminating heap fragmentation and minimizing Cortex-A72 TLB misses.
+  - `T1` stores separate columnar arrays per series (`avg[]`, `max[]`, `min[]`, `p95[]`) in RAM/`tmpfs` rather than interleaved structs, matching `uPlot`'s columnar `[timestamps[], avg[], max[]]` input format directly.
+  - The bounded `≤ 4 MiB` on-disk query cache (`§5`) also materializes `T2`–`T4` slices into columnar SoA arrays on first read.
+- **Single-writer concurrency model:** One `200 ms` writer goroutine owns all ring writes, cascade rollups, flush assembly, and series lifecycle sweeps. HTTP and SSE readers acquire a lightweight `sync.RWMutex` read lock for microseconds to copy at most two contiguous slice segments around the ring wrap point, ensuring slow clients never stall `5 Hz` ingestion (SSE subscribers additionally use bounded drop-oldest queues).
+- **4-stage dynamic series lifecycle & slab free-list:** Ephemeral VLANs, PPPoE sessions, WireGuard peers, and rotating Top-K clients follow a four-stage lifecycle in the series registry — **`Active → Warm-Idle → Cold-Archive → Expired`**. Idle entities release their RAM `T0`/`T1` slabs back to a fixed-size slab free-list while remaining readable from `T2`–`T4` on disk as `retired` catalog entries until overwritten.
+- **Fast/slow loop split:** The `200 ms` (5 Hz) fast loop samples interface `IFLA_STATS64`, `/proc/stat`, `/proc/softirqs`, and active queue drops (matching DPAA1/FMan hardware shadow-counter coalescing while eliminating jerky 1-second UI steps). Slower metrics (`1 s`+) piggyback on every 5th tick. An optional `100 ms` (10 Hz) in-memory diagnostics burst mode may run on a local LAN interface detail view (e.g., `iperf3`/`TRex` testing) without altering `T1`–`T4` ring geometry.
 
 ---
 
@@ -79,7 +86,7 @@ Offset (4 KiB aligned)
 │   4,096 × 4 KiB frames of length-prefixed CBOR/binary records           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ Region 7: Optional T1 Hot-Ring Clean-Shutdown Snapshot     [16.00 MiB]  │
-│   Zstd-compressed T1 ring written only on SIGTERM / ExecStop            │
+│   Compressed T1 SoA slabs (s2 / gzip / zstd) written only on SIGTERM    │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -202,3 +209,23 @@ VyOS boots via a live-boot/OverlayFS architecture where the underlying physical 
 - **Optional passive shadow copy:** Operators can configure `--snapshot-path` (daily or on clean shutdown) to maintain a static, read-only backup copy for local redundancy or off-box export without touching the active `.ring` file.
 - **Schema upgrades (fresh file + read-only prior mount):** On a `format_version` bump, vyview creates a fresh `vyview.vN.ring` and mounts the previous ring file **read-only** for historical reads until it ages out — avoiding risky in-place migrations on flash.
 - **Self-monitoring (`System › Storage & Images` and `Settings`):** Exposes real host write rate from `/proc/self/io` (`write_bytes`), **health of both Superblock A and Superblock B**, **torn-slot count**, **saved vs. expected nominal slots** per tier, configured storage target (VyOS persistence partition vs. USB `--data-path`), and kernel-sysfs eMMC `EXT_CSD` wear (`life_time` Type A/B + `pre_eol_info`).
+
+---
+
+## 7. Pure-Go Implementation Rationale (Zero Third-Party TSDBs)
+
+The entire storage engine (~400–600 lines of Go) is built directly on the Go standard library (`encoding/binary`, `hash/crc32` Castagnoli, `math`, `os`, `sync`, and optionally `compress/gzip` or a pinned patched release of pure-Go `github.com/klauspost/compress/s2` with ARM64 assembly for compressing NaN-sparse Region 7 `T1` shutdown snapshots).
+
+### Why Existing Embedded TSDB / KV Libraries Are Rejected
+
+| Candidate | Why Unsuitable for On-Router `vyview` |
+| --- | --- |
+| **`go-graphite/go-whisper`** | Locked to whole-second `uint32` steps (cannot represent `200 ms`), not thread-safe, and creates one `.wsp` file per metric (poor flash wear and ephemeral VLAN/VPN churn). |
+| **`aymanhs/nanotdb`** | Core storage lives under a Go `internal/` import path blocking external embedding; locks streams to single scalar type and discourages dynamic tag registries. |
+| **`nakabonne/tstorage`** | No multi-tier cascading rollups, continuous WAL writes on flash, and unmaintained with open recovery/locking bugs. |
+| **`prometheus/tsdb` & `VictoriaMetrics/lib/storage`** | Heavy binary overhead (`~2.5–6.4 MB`), decompress chunks on long-range queries, and lack open-source age-tiered downsampling. |
+| **`pebble`, `badger`, `bbolt`, `SQLite WAL`** | LSM compaction or B+tree/WAL write amplification (`~1,109 MB/day` for SQLite WAL) violates the `< 50 MB/day` eMMC budget and `< 40 MB` RSS cap. |
+| **`ziutek/rrd`, `tsink`, `rrd4j`** | Break `CGO_ENABLED=0` static ARM64 builds (external `rrdtool` binary, Rust, or Java). |
+| **Periodic full-file atomic snapshots (`10–15 min`)** | Viable only for tiny `~1–2 MiB` compact RAM rings; rewriting `vyview.ring` (`160–778 MiB`) every 15 min destroys eMMC endurance and increases power-cut loss from `≤ 60 s` to `15 min`. Reserved strictly for `SIGTERM` Region 7 snapshots and optional daily `--snapshot-path` backups. |
+
+*Off-router escape hatch:* Fleet-scale or multi-hundred-GB analytics belong off the router by scraping vyview's authenticated `/metrics` endpoint into external Prometheus or VictoriaMetrics.
